@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../components/task_card.dart';
 import '../models/task.dart';
 import '../repository/task_repository.dart';
+import '../utils/date_format.dart';
 
 class TaskListView extends StatefulWidget {
   const TaskListView({super.key});
@@ -115,10 +116,65 @@ class TaskListViewState extends State<TaskListView> {
     );
   }
 
-  void _handleEditTask(Task task) {
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      SnackBar(content: Text('Chỉnh sửa "${task.title}" chưa được hỗ trợ.')),
+  bool _isTaskCompleted(Task task) {
+    final normalized = task.status.trim().toLowerCase();
+    return normalized.contains('complete') || normalized == 'done';
+  }
+
+  Future<void> _openTaskActions(Task task) async {
+    final canMarkDone = !_isTaskCompleted(task);
+    final hasQrCode = task.qrCode.trim().isNotEmpty;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ListTile(
+                title: Text(
+                  task.title,
+                  style: theme.textTheme.titleMedium,
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Người phụ trách: ${task.assignee}'),
+                    Text('Hạn: ${formatDueDate(task.dueDate)}'),
+                    Text('Trạng thái: ${task.status}'),
+                  ],
+                ),
+              ),
+              if (hasQrCode)
+                ListTile(
+                  leading: const Icon(Icons.qr_code_2_outlined),
+                  title: const Text('Mã QR'),
+                  subtitle: SelectableText(task.qrCode),
+                ),
+              if (canMarkDone)
+                ListTile(
+                  leading: const Icon(Icons.check_circle_outline),
+                  title: const Text('Đánh dấu hoàn thành'),
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    await _handleMarkComplete(task);
+                  },
+                ),
+              ListTile(
+                leading: const Icon(Icons.close),
+                title: const Text('Đóng'),
+                onTap: () => Navigator.of(sheetContext).pop(),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

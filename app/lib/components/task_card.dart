@@ -29,10 +29,7 @@ class TaskCard extends StatelessWidget {
     return now.isAfter(dueDate);
   }
 
-  String get _dueDateLabel {
-    final dueDate = task.dueDate;
-    return formatDueDate(dueDate);
-  }
+  bool get _hasQrCode => task.qrCode.trim().isNotEmpty;
 
   Color _statusBackgroundColor(ColorScheme colors) {
     final value = task.status.toLowerCase();
@@ -67,10 +64,23 @@ class TaskCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
 
+    final baseCardColor = theme.cardTheme.color ?? colors.surface;
     final cardColor = _isOverdue
         ? colors.errorContainer
-        : theme.cardTheme.color ?? theme.colorScheme.surface;
-    final textColor = _isOverdue ? colors.onErrorContainer : null;
+        : _isCompleted
+            ? colors.surfaceVariant
+            : baseCardColor;
+    final textColor = _isOverdue
+        ? colors.onErrorContainer
+        : _isCompleted
+            ? colors.onSurfaceVariant
+            : null;
+    final borderSide = _isOverdue
+        ? BorderSide(color: colors.error)
+        : _isCompleted
+            ? BorderSide(color: colors.outlineVariant)
+            : BorderSide(color: colors.outlineVariant.withOpacity(0.4));
+    final dueDateLabel = formatDueDate(task.dueDate);
     final canMarkDone = !_isCompleted && onMarkDone != null;
 
     final content = Padding(
@@ -90,6 +100,8 @@ class TaskCard extends StatelessWidget {
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: textColor ?? theme.textTheme.titleMedium?.color,
+                        decoration:
+                            _isCompleted ? TextDecoration.lineThrough : null,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -103,6 +115,13 @@ class TaskCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (_hasQrCode)
+                _QrBadge(
+                  foregroundColor: textColor ?? colors.primary,
+                  backgroundColor: textColor != null
+                      ? textColor.withOpacity(0.12)
+                      : colors.primaryContainer.withOpacity(0.5),
+                ),
               if (canMarkDone)
                 IconButton(
                   icon: const Icon(Icons.check_circle_outline),
@@ -134,15 +153,18 @@ class TaskCard extends StatelessWidget {
                   Icon(
                     Icons.calendar_today_outlined,
                     size: 16,
-                    color: textColor ?? colors.outline,
+                    color: _isOverdue
+                        ? textColor ?? colors.error
+                        : textColor ?? colors.outline,
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    formatDueDate(task.dueDate),
+                    dueDateLabel,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: _isOverdue ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight:
+                          _isOverdue ? FontWeight.w600 : FontWeight.normal,
                       color: _isOverdue
-                          ? (textColor ?? colors.error)
+                          ? textColor ?? colors.error
                           : textColor ?? theme.textTheme.bodySmall?.color,
                     ),
                   ),
@@ -154,25 +176,9 @@ class TaskCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               task.description!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
-            ),
-          ],
-          if (task.qrCode.trim().isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(
-                  Icons.qr_code_2_outlined,
-                  color: textColor ?? colors.primary,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: SelectableText(
-                    task.qrCode,
-                    style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
-                  ),
-                ),
-              ],
             ),
           ],
         ],
@@ -181,12 +187,42 @@ class TaskCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: borderSide,
+      ),
       color: cardColor,
       elevation: _isOverdue ? 4 : 1,
       child: InkWell(
         onTap: onOpenActions,
         child: content,
+      ),
+    );
+  }
+}
+
+class _QrBadge extends StatelessWidget {
+  const _QrBadge({
+    required this.foregroundColor,
+    required this.backgroundColor,
+  });
+
+  final Color foregroundColor;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(
+        Icons.qr_code_2_outlined,
+        color: foregroundColor,
+        size: 18,
       ),
     );
   }
