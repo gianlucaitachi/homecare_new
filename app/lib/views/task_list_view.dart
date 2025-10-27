@@ -9,16 +9,16 @@ class TaskListView extends StatefulWidget {
   const TaskListView({super.key});
 
   @override
-  State<TaskListView> createState() => _TaskListViewState();
+  TaskListViewState createState() => TaskListViewState();
 }
 
-class _TaskListViewState extends State<TaskListView> {
-  late Future<List<Task>> _loadFuture;
+class TaskListViewState extends State<TaskListView> {
+  late Future<List<Task>> _tasksFuture;
 
   @override
   void initState() {
     super.initState();
-    _loadFuture = _loadTasks();
+    _tasksFuture = _loadTasks();
   }
 
   Future<List<Task>> _loadTasks({bool forceRefresh = false}) {
@@ -26,181 +26,183 @@ class _TaskListViewState extends State<TaskListView> {
     return repository.fetchTasks(forceRefresh: forceRefresh);
   }
 
-  Future<void> _refresh() {
+  Future<void> refreshTasks({bool forceRefresh = true}) async {
     setState(() {
-      _loadFuture = _loadTasks(forceRefresh: true);
+      _tasksFuture = _loadTasks(forceRefresh: forceRefresh);
     });
-    return _loadFuture;
+    await _tasksFuture;
   }
 
   @override
   Widget build(BuildContext context) {
-    final repository = context.watch<TaskRepository>();
-    final tasks = repository.tasks;
+    return SafeArea(
+      child: FutureBuilder<List<Task>>(
+        future: _tasksFuture,
+        builder: (context, snapshot) {
+          final repository = context.watch<TaskRepository>();
+          final tasks = repository.tasks;
 
-    return FutureBuilder<List<Task>>(
-      future: _loadFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting && tasks.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              tasks.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        if (snapshot.hasError && tasks.isEmpty) {
-          return _TaskListError(onRetry: _refresh);
-        }
+          if (snapshot.hasError && tasks.isEmpty) {
+            return _RefreshableMessage(
+              onRefresh: refreshTasks,
+              message:
+                  'Failed to load tasks. Pull down to try again.',
+            );
+          }
 
-        if (tasks.isEmpty) {
-          return const _TaskListEmpty();
-        }
+          if (tasks.isEmpty) {
+            return _RefreshableMessage(
+              onRefresh: refreshTasks,
+              message:
+                  'No tasks available yet. Pull down to refresh.',
+            );
+          }
 
-        return RefreshIndicator(
-          onRefresh: _refresh,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: tasks.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final task = tasks[index];
-              return _TaskTile(task: task);
-            },
+          return RefreshIndicator(
+            onRefresh: refreshTasks,
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: tasks.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final task = tasks[index];
+                return _TaskCard(task: task);
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _RefreshableMessage extends StatelessWidget {
+  const _RefreshableMessage({
+    required this.onRefresh,
+    required this.message,
+  });
+
+  final Future<void> Function({bool forceRefresh}) onRefresh;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(      
+      onRefresh: () => onRefresh(forceRefresh: true),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        children: [
+          Center(
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
           ),
-        );
-      },
-    );
-  }
-}
-
-class _TaskListEmpty extends StatelessWidget {
-  const _TaskListEmpty();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.inbox_outlined, size: 48, color: Theme.of(context).colorScheme.outline),
-            const SizedBox(height: 16),
-            const Text(
-              'No tasks yet',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Create a task to get started.',
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
 }
 
-class _TaskListError extends StatelessWidget {
-  const _TaskListError({required this.onRetry});
-
-  final Future<void> Function() onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
-            const SizedBox(height: 16),
-            const Text(
-              'Failed to load tasks',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Please try refreshing.',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TaskTile extends StatelessWidget {
-  const _TaskTile({required this.task});
+class _TaskCard extends StatelessWidget {
+  const _TaskCard({required this.task});
 
   final Task task;
 
   @override
   Widget build(BuildContext context) {
-    final dueDate = task.dueDate;
-    final dueDateText = dueDate != null ? DateFormat('MMM d, yyyy').format(dueDate) : 'No due date';
     final theme = Theme.of(context);
-    final status = task.status;
-    final statusColor = _statusColor(theme, status);
+    final dueDate = task.dueDate;
+    final dueDateLabel = dueDate != null
+        ? DateFormat('MMM d, yyyy').format(dueDate)
+        : 'No due date';
 
-    return ListTile(
-      title: Text(task.title),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (task.description != null && task.description!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                task.description!,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    task.title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                _StatusChip(status: task.status),
+              ],
             ),
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text('Assignee: ${task.assignee}'),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text('Due: $dueDateText'),
-          ),
-        ],
-      ),
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: statusColor.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          status.replaceAll('_', ' ').toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(color: statusColor, fontWeight: FontWeight.w600),
+            if (task.description != null && task.description!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                task.description!,
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+            const SizedBox(height: 12),
+            Text('Assignee: ${task.assignee}'),
+            const SizedBox(height: 4),
+            Text('Due: $dueDateLabel'),
+            const SizedBox(height: 8),
+            SelectableText(
+              'QR Code: ${task.qrCode}',
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
         ),
       ),
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('QR Code: ${task.qrCode}')),
-        );
-      },
     );
   }
+}
 
-  Color _statusColor(ThemeData theme, String status) {
-    switch (status) {
-      case 'completed':
-        return theme.colorScheme.primary;
-      case 'in_progress':
-        return theme.colorScheme.tertiary;
-      default:
-        return theme.colorScheme.secondary;
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.status});
+
+  final String status;
+
+  Color _backgroundColor(BuildContext context) {
+    final lower = status.toLowerCase();
+    final theme = Theme.of(context);
+    if (lower.contains('complete')) {
+      return theme.colorScheme.secondaryContainer;
     }
+    if (lower.contains('progress')) {
+      return theme.colorScheme.tertiaryContainer;
+    }
+    return theme.colorScheme.primaryContainer;
+  }
+
+  Color _foregroundColor(BuildContext context) {
+    final lower = status.toLowerCase();
+    final theme = Theme.of(context);
+    if (lower.contains('complete')) {
+      return theme.colorScheme.onSecondaryContainer;
+    }
+    if (lower.contains('progress')) {
+      return theme.colorScheme.onTertiaryContainer;
+    }
+    return theme.colorScheme.onPrimaryContainer;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      label: Text(status),
+      backgroundColor: _backgroundColor(context),
+      labelStyle: TextStyle(color: _foregroundColor(context)),
+    );
   }
 }

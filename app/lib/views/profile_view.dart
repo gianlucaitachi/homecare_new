@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 
 class ProfileView extends StatelessWidget {
-  const ProfileView({super.key, required this.baseUrl});
+  const ProfileView({
+    super.key,
+    required this.baseUrl,
+    this.showScaffold = true,
+  });
 
   final String baseUrl;
+  final bool showScaffold;
 
-  @override
-  Widget build(BuildContext context) {
-    final content = SafeArea(
+  Widget _buildContent(BuildContext context) {
+    return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -33,6 +37,20 @@ class ProfileView extends StatelessWidget {
       return content;
     }
 
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Profile'),
+      ),
+      body: content,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final content = _buildContent(context);
+    if (!showScaffold) {
+      return content;
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
