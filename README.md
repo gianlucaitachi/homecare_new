@@ -53,6 +53,39 @@ Connect to the `/ws` endpoint with a WebSocket client to receive push notificati
 
 Use these events to keep connected clients synchronized with the current task list.
 
+## Database & Persistence Workflow
+The `homecare_backend/` package contains shared database helpers, SQL migrations, and local development tooling for PostgreSQL.
+
+### Initial Setup
+1. Copy the example environment file and adjust it as needed:
+   ```bash
+   cp homecare_backend/.env.example homecare_backend/.env
+   ```
+2. Install dependencies for the Dart package:
+   ```bash
+   dart pub get --directory homecare_backend
+   ```
+
+### Running PostgreSQL Locally
+Use Docker Compose to provision PostgreSQL with persisted storage:
+
+```bash
+cd homecare_backend
+docker-compose up -d
+```
+
+This launches a Postgres 15 container with the credentials defined in `.env.example`.
+
+### Applying Database Migrations
+After PostgreSQL is running, execute the migration tool to apply all SQL files in `homecare_backend/migrations/`:
+
+```bash
+cd homecare_backend
+dart run tool/migrate.dart
+```
+
+The script loads `DATABASE_URL` from the environment, applies any pending migrations in order, and records them in the `schema_migrations` table. Rerunning the command is safe—it skips migrations that are already applied.
+
 ## Flutter Mobile App
 The mobile client is a Flutter application that caregivers use in the field to view schedules, receive push notifications, record visit outcomes, and synchronize data with the backend service when connectivity is available. The Flutter code lives in the `mobile_app` project directory.
 
