@@ -125,6 +125,20 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000 --dart-define=SENTRY
      --flavor dev
    ```
 
+### Local notifications
+- Copy the same configuration used for regular builds before testing reminders. Either create/update `homecare_app/.env` with the required keys (for example `API_BASE_URL`, `SENTRY_DSN`, and `GOOGLE_MAPS_API_KEY`) or provide them with `--dart-define` flags when you run `flutter run` or `flutter test`.
+- Grant notification permissions on your test device:
+  - **Android 13+ (API 33+)**: After the app prompts for notifications, verify the permission in **Settings → Apps → Homecare → Notifications**. Toggle **Allow notifications** on if it was denied.
+  - **iOS**: Accept the in-app prompt or enable it later under **Settings → Homecare → Notifications → Allow Notifications**.
+- Exercise the reminder flow end-to-end:
+  1. Launch the app, create a new task with a scheduled reminder, and note the reminder time.
+  2. Background or lock the device and wait for the local notification to appear at the scheduled time.
+  3. Open the notification, complete the task, and confirm that the reminder entry is cleared or marked as cancelled inside the task detail screen.
+- Troubleshooting tips:
+  - Some emulators/simulators throttle alarms when the host machine sleeps or when background execution limits are active; prefer physical devices for confirmation testing.
+  - Ensure the Android notification channel used for reminders exists and has **Importance: High** (check under **Settings → Apps → Homecare → Notifications → Notification categories**).
+  - If no alert arrives, verify that the reminder job was scheduled in the debug logs and that the device’s **Do Not Disturb** mode is disabled.
+
 ### Build Artifacts
 - **Android:**
   ```
