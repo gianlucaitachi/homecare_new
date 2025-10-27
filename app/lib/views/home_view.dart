@@ -7,8 +7,6 @@ import '../components/qr_scan_button.dart';
 import '../env.dart';
 import '../utils/app_router.dart';
 import '../repository/task_repository.dart';
-import 'components/app_bar_component.dart';
-import 'components/bottom_bar_component.dart';
 import 'profile_view.dart';
 import 'scan_view.dart';
 import 'task_list_view.dart';
