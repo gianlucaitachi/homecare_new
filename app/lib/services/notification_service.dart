@@ -1,25 +1,27 @@
 import 'dart:io';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {
-  NotificationService._internal();
-
-  static final NotificationService instance = NotificationService._internal();
+  NotificationService();
 
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
   bool _initialized = false;
-  bool _permissionDenied = false;
+  bool _permissionGranted = true;
 
   bool get isInitialized => _initialized;
 
-  bool get permissionDenied => _permissionDenied;
+  bool get permissionGranted => _permissionGranted;
 
-  Future<bool> initialize() async {
+  bool get permissionDenied => !_permissionGranted;
+
+  Future<void> init() async {
     if (_initialized) {
-      return !_permissionDenied;
+      return;
     }
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -36,40 +38,24 @@ class NotificationService {
 
     await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
-    bool? permissionGranted;
+    await _initializeTimezones();
+    await _requestPermissions();
 
-    if (Platform.isIOS) {
-      permissionGranted = await _flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(alert: true, badge: true, sound: true);
-    } else if (Platform.isAndroid) {
-      final androidPlugin = _flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-      if (androidPlugin != null && _isAndroidTOrAbove()) {
-        permissionGranted = await androidPlugin.requestPermission();
-      }
-    }
-
-    _permissionDenied = permissionGranted == false;
     _initialized = true;
-
-    return !_permissionDenied;
   }
 
   Future<void> scheduleNotification({
     required int id,
     required String title,
     required String body,
-    required DateTime scheduledDate,
+    DateTime? scheduledDate,
     String? payload,
   }) async {
     if (!_initialized) {
-      await initialize();
+      await init();
     }
 
-    if (_permissionDenied) {
+    if (!_permissionGranted) {
       return;
     }
 
@@ -84,23 +70,69 @@ class NotificationService {
       iOS: const DarwinNotificationDetails(),
     );
 
-    final scheduleDate = scheduledDate.isBefore(DateTime.now())
-        ? DateTime.now().add(const Duration(seconds: 1))
-        : scheduledDate;
+    final now = DateTime.now();
+    final targetDate = scheduledDate ?? now;
+    final safeDate =
+        targetDate.isBefore(now) ? now.add(const Duration(seconds: 1)) : targetDate;
+    final tzDate = tz.TZDateTime.from(safeDate, tz.local);
 
-    await _flutterLocalNotificationsPlugin.schedule(
+    await _flutterLocalNotificationsPlugin.zonedSchedule(
       id,
       title,
       body,
-      scheduleDate,
+      tzDate,
       notificationDetails,
       payload: payload,
       androidAllowWhileIdle: true,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 
   Future<void> cancelNotification(int id) {
     return _flutterLocalNotificationsPlugin.cancel(id);
+  }
+
+  Future<void> _initializeTimezones() async {
+    tz.initializeTimeZones();
+    final timeZoneName = DateTime.now().timeZoneName;
+    try {
+      tz.setLocalLocation(tz.getLocation(timeZoneName));
+    } catch (_) {
+      tz.setLocalLocation(tz.getLocation('UTC'));
+    }
+  }
+
+  Future<void> _requestPermissions() async {
+    bool permissionGranted = true;
+
+    if (Platform.isIOS || Platform.isMacOS) {
+      final iosImplementation = _flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>();
+      final macImplementation = _flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              MacOSFlutterLocalNotificationsPlugin>();
+      final iosGranted = await iosImplementation?.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      final macGranted = await macImplementation?.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      permissionGranted = (iosGranted ?? macGranted ?? true) == true;
+    } else if (Platform.isAndroid && _isAndroidTOrAbove()) {
+      final androidImplementation = _flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      final androidGranted = await androidImplementation?.requestPermission();
+      permissionGranted = androidGranted ?? true;
+    }
+
+    _permissionGranted = permissionGranted;
   }
 
   bool _isAndroidTOrAbove() {

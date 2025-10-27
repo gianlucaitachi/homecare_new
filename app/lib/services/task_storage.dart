@@ -18,7 +18,7 @@ class TaskStorage {
     await prefs.setString(tasksKey, encoded);
   }
 
-  Future<void> saveNotificationIds(Map<String, String> notificationIds) async {
+  Future<void> saveNotificationIds(Map<String, int> notificationIds) async {
     final prefs = await SharedPreferences.getInstance();
     if (notificationIds.isEmpty) {
       await prefs.remove(notificationIdsKey);
@@ -52,20 +52,32 @@ class TaskStorage {
     }).toList();
   }
 
-  Future<Map<String, String>> loadNotificationIds() async {
+  Future<Map<String, int>> loadNotificationIds() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(notificationIdsKey);
     if (raw == null || raw.isEmpty) {
-      return <String, String>{};
+      return <String, int>{};
     }
 
     final decoded = jsonDecode(raw);
     if (decoded is Map<String, dynamic>) {
-      return decoded.map((key, value) => MapEntry(key, value.toString()));
+      return decoded.map((key, value) {
+        final parsed = int.tryParse(value.toString());
+        if (parsed == null) {
+          throw const FormatException('Invalid notification id value');
+        }
+        return MapEntry(key, parsed);
+      });
     }
     if (decoded is Map) {
       final map = Map<String, dynamic>.from(decoded as Map);
-      return map.map((key, value) => MapEntry(key, value.toString()));
+      return map.map((key, value) {
+        final parsed = int.tryParse(value.toString());
+        if (parsed == null) {
+          throw const FormatException('Invalid notification id value');
+        }
+        return MapEntry(key, parsed);
+      });
     }
 
     throw const FormatException('Invalid notification ids payload');

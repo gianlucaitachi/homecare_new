@@ -9,8 +9,9 @@ import 'env.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final notificationService = NotificationService.instance;
-  final notificationPermissionGranted = await notificationService.initialize();
+  final notificationService = NotificationService();
+  await notificationService.init();
+  final notificationPermissionGranted = !notificationService.permissionDenied;
   final storedToken = await TokenStorage.instance.getToken();
   final hasToken = storedToken != null;
 
@@ -79,7 +80,6 @@ class _HomecareAppState extends State<HomecareApp> {
         Provider<NotificationService>.value(value: widget.notificationService),
         Provider<TokenStorage>.value(value: TokenStorage.instance),
         Provider<TaskStorage>.value(value: TaskStorage.instance),
-        Provider<NotificationService>(create: (_) => const NotificationService()),
         Provider<QrService>(create: (_) => const QrService()),
         ProxyProvider<TokenStorage, AuthService>(
           update: (_, tokenStorage, __) => AuthService(tokenStorage: tokenStorage),

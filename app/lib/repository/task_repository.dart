@@ -15,7 +15,7 @@ class TaskRepository extends ChangeNotifier {
     NotificationService? notificationService,
   })  : _taskService = taskService ?? TaskService(),
         _taskStorage = taskStorage ?? TaskStorage.instance,
-        _notificationService = notificationService ?? const NotificationService() {
+        _notificationService = notificationService ?? NotificationService() {
     _hydrationFuture = _hydrateCache();
   }
 
@@ -25,13 +25,13 @@ class TaskRepository extends ChangeNotifier {
   late final Future<void> _hydrationFuture;
 
   List<Task> _cachedTasks = <Task>[];
-  Map<String, String> _scheduledNotificationIds = <String, String>{};
+  Map<String, int> _scheduledNotificationIds = <String, int>{};
 
   List<Task> get tasks => List<Task>.unmodifiable(_cachedTasks);
 
   @visibleForTesting
-  Map<String, String> get scheduledNotificationIds =>
-      Map<String, String>.unmodifiable(_scheduledNotificationIds);
+  Map<String, int> get scheduledNotificationIds =>
+      Map<String, int>.unmodifiable(_scheduledNotificationIds);
 
   void updateTaskService(TaskService taskService) {
     if (!identical(_taskService, taskService)) {
@@ -56,7 +56,7 @@ class TaskRepository extends ChangeNotifier {
     try {
       _scheduledNotificationIds = await _taskStorage.loadNotificationIds();
     } catch (_) {
-      _scheduledNotificationIds = <String, String>{};
+      _scheduledNotificationIds = <String, int>{};
       await _taskStorage.clearNotificationIds();
     }
   }
@@ -186,50 +186,59 @@ class TaskRepository extends ChangeNotifier {
   }
 
   Future<void> _scheduleNotificationForTask(Task task) async {
-    if (_isTaskComplete(task) || !_isDueDateInFuture(task)) {
+    final dueDate = DateTime.tryParse(task.dueDate);
+    if (_isTaskComplete(task) || !_isDueDateInFuture(dueDate)) {
       await _cancelScheduledNotification(task.id);
       return;
     }
 
-    final notificationId =
-        await _notificationService.scheduleNotification(task);
-    if (notificationId == null || notificationId.isEmpty) {
-      if (_scheduledNotificationIds.containsKey(task.id)) {
-        final mutable = Map<String, String>.from(_scheduledNotificationIds)
-          ..remove(task.id);
-        _scheduledNotificationIds = mutable;
-        await _persistNotificationIds();
-      }
-      return;
-    }
+    await _notificationService.init();
 
-    if (_scheduledNotificationIds[task.id] == notificationId) {
-      return;
-    }
+    final notificationId = _notificationIdForTask(task.id);
+    await _notificationService.scheduleNotification(
+      id: notificationId,
+      title: task.title,
+      body: 'Assigned to ${task.assignee}',
+      scheduledDate: dueDate?.toLocal(),
+      payload: task.id,
+    );
 
-    final mutable = Map<String, String>.from(_scheduledNotificationIds)
+    final mutable = Map<String, int>.from(_scheduledNotificationIds)
       ..[task.id] = notificationId;
     _scheduledNotificationIds = mutable;
     await _persistNotificationIds();
   }
 
   Future<void> _cancelScheduledNotification(String taskId) async {
-    await _notificationService.cancelNotification(taskId);
+    final notificationId =
+        _scheduledNotificationIds[taskId] ?? _notificationIdForTask(taskId);
+    await _notificationService.cancelNotification(notificationId);
     if (_scheduledNotificationIds.containsKey(taskId)) {
-      final mutable = Map<String, String>.from(_scheduledNotificationIds)
+      final mutable = Map<String, int>.from(_scheduledNotificationIds)
         ..remove(taskId);
       _scheduledNotificationIds = mutable;
       await _persistNotificationIds();
     }
   }
 
-  bool _isDueDateInFuture(Task task) {
-    final dueDate = DateTime.tryParse(task.dueDate);
+  bool _isDueDateInFuture(DateTime? dueDate) {
     if (dueDate == null) {
       return false;
     }
     final now = DateTime.now().toUtc();
     return dueDate.toUtc().isAfter(now);
+  }
+
+  int _notificationIdForTask(String taskId) {
+    const int seed = 31;
+    int hash = 0;
+    for (final codeUnit in taskId.codeUnits) {
+      hash = (hash * seed + codeUnit) & 0x7fffffff;
+    }
+    if (hash == 0) {
+      return taskId.codeUnits.isEmpty ? 1 : taskId.codeUnits.first;
+    }
+    return hash;
   }
 
   bool _isTaskComplete(Task task) {

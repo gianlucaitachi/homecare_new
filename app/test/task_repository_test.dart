@@ -69,22 +69,51 @@ class FakeTaskService extends TaskService {
   }
 }
 
-class RecordingNotificationService extends NotificationService {
-  RecordingNotificationService({this.generatedId});
+class RecordedNotification {
+  const RecordedNotification({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.scheduledDate,
+    required this.payload,
+  });
 
-  final String? generatedId;
-  final List<Task> scheduled = <Task>[];
-  final List<String> cancelled = <String>[];
+  final int id;
+  final String title;
+  final String body;
+  final DateTime? scheduledDate;
+  final String? payload;
+}
+
+class RecordingNotificationService extends NotificationService {
+  final List<RecordedNotification> scheduled = <RecordedNotification>[];
+  final List<int> cancelled = <int>[];
 
   @override
-  Future<String?> scheduleNotification(Task task) async {
-    scheduled.add(task);
-    return generatedId ?? task.id;
+  Future<void> init() async {}
+
+  @override
+  Future<void> scheduleNotification({
+    required int id,
+    required String title,
+    required String body,
+    DateTime? scheduledDate,
+    String? payload,
+  }) async {
+    scheduled.add(
+      RecordedNotification(
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: scheduledDate,
+        payload: payload,
+      ),
+    );
   }
 
   @override
-  Future<void> cancelNotification(String notificationId) async {
-    cancelled.add(notificationId);
+  Future<void> cancelNotification(int id) async {
+    cancelled.add(id);
   }
 }
 
@@ -127,10 +156,13 @@ void main() {
 
       expect(task.id, '1');
       expect(notificationService.scheduled, hasLength(1));
-      expect(notificationService.scheduled.first.id, task.id);
+      expect(
+        notificationService.scheduled.first.id,
+        repository.scheduledNotificationIds[task.id],
+      );
       expect(
         repository.scheduledNotificationIds[task.id],
-        equals(task.id),
+        equals(notificationService.scheduled.first.id),
       );
     });
 
@@ -164,7 +196,10 @@ void main() {
 
       expect(task.dueDate, newDue);
       expect(notificationService.scheduled, hasLength(2));
-      expect(notificationService.scheduled.last.id, task.id);
+      expect(
+        notificationService.scheduled.last.id,
+        repository.scheduledNotificationIds[task.id],
+      );
     });
 
     test('deleteTask cancels scheduled notifications', () async {
@@ -186,7 +221,8 @@ void main() {
 
       await repository.deleteTask(task.id);
 
-      expect(notificationService.cancelled, contains(task.id));
+      final scheduledId = notificationService.scheduled.first.id;
+      expect(notificationService.cancelled, contains(scheduledId));
       expect(repository.scheduledNotificationIds.containsKey(task.id), isFalse);
     });
 
@@ -216,7 +252,8 @@ void main() {
 
       await repository.completeByQr(id: '4', code: 'qr-complete');
 
-      expect(notificationService.cancelled, contains('4'));
+      final scheduledId = notificationService.scheduled.first.id;
+      expect(notificationService.cancelled, contains(scheduledId));
       expect(repository.scheduledNotificationIds.containsKey('4'), isFalse);
     });
   });
