@@ -96,7 +96,7 @@ class _HomePageState extends State<HomePage> {
       ),
       bottomNavigationBar: BottomBarComponent(
         currentIndex: _currentIndex,
-        onTabSelected: _onTabSelected,
+        onTap: _onTabSelected,
       ),
       floatingActionButton: _currentIndex == 0
           ? FloatingActionButton(
