@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/task.dart';
 import '../repository/task_repository.dart';
+import '../utils/date_format.dart';
 
 class TaskListView extends StatefulWidget {
   const TaskListView({super.key});
@@ -120,9 +120,7 @@ class _TaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dueDate = task.dueDate;
-    final dueDateLabel = dueDate != null
-        ? DateFormat('MMM d, yyyy').format(dueDate)
-        : 'No due date';
+    final dueDateLabel = formatDueDate(dueDate);
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
