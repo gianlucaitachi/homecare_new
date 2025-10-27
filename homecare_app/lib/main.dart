@@ -1,28 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'Repositories/auth_repository.dart';
 import 'Utils/app_router.dart';
 import 'env.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const HomecareApp());
+  final authRepository = await createAuthRepository();
+  final hasToken = authRepository.getStoredToken() != null;
+
+  runApp(
+    HomecareApp(
+      authRepository: authRepository,
+      initialRoute: hasToken ? AppRouter.homeRoute : AppRouter.loginRoute,
+    ),
+  );
 }
 
 class HomecareApp extends StatelessWidget {
-  const HomecareApp({super.key});
+  const HomecareApp({
+    required this.authRepository,
+    required this.initialRoute,
+    super.key,
+  });
+
+  final AuthRepository authRepository;
+  final String initialRoute;
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: const [],
+      providers: [
+        Provider<AuthRepository>.value(value: authRepository),
+      ],
       child: MaterialApp(
         title: 'Homecare',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
           useMaterial3: true,
         ),
-        initialRoute: AppRouter.loginRoute,
+        initialRoute: initialRoute,
         onGenerateRoute: AppRouter.generateRoute,
         builder: (context, child) {
           return Banner(
