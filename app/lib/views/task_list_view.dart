@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/task.dart';
 import '../repository/task_repository.dart';
-import '../utils/date_format.dart';
+import '../components/task_card.dart';
 
 class TaskListView extends StatefulWidget {
   const TaskListView({super.key});
@@ -133,37 +133,75 @@ class TaskListViewState extends State<TaskListView> {
     final tasks = repository.tasks;
 
     return SafeArea(
-      child: RefreshIndicator(
-        onRefresh: () => refreshTasks(forceRefresh: true),
-        child: tasks.isEmpty
-            ? ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                children: [
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.4,
-                    child: _buildEmptyState(),
-                  ),
-                ],
-              )
-            : ListView.builder(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                itemCount: tasks.length,
-                itemBuilder: (BuildContext context, int index) {
-                  final task = tasks[index];
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: index == tasks.length - 1 ? 0 : 12),
-                    child: TaskCard(
-                      task: task,
-                      onTap: () => _openTaskActions(task),
-                      onMarkDone: () async => _handleMarkDone(task),
-                    ),
-                  );
-                },
-              ),
+      child: FutureBuilder<List<Task>>(
+        future: _tasksFuture,
+        builder: (context, snapshot) {
+          final repository = context.watch<TaskRepository>();
+          final tasks = repository.tasks;
+
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              tasks.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError && tasks.isEmpty) {
+            return _RefreshableMessage(
+              onRefresh: refreshTasks,
+              message:
+                  'Failed to load tasks. Pull down to try again.',
+            );
+          }
+
+          if (tasks.isEmpty) {
+            return _RefreshableMessage(
+              onRefresh: refreshTasks,
+              message:
+                  'No tasks available yet. Pull down to refresh.',
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: refreshTasks,
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: tasks.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final task = tasks[index];
+                return TaskCard(
+                  task: task,
+                  onEdit: () => _handleEditTask(task),
+                  onMarkComplete: () => _handleMarkComplete(task),
+                );
+              },
+            ),
+          );
+        },
       ),
     );
+  }
+
+  void _handleEditTask(Task task) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      SnackBar(content: Text('Chỉnh sửa "${task.title}" chưa được hỗ trợ.')),
+    );
+  }
+
+  Future<void> _handleMarkComplete(Task task) async {
+    final repository = context.read<TaskRepository>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      await repository.updateTask(task.id, {'status': 'completed'});
+      messenger.showSnackBar(
+        SnackBar(content: Text('Đã đánh dấu "${task.title}" hoàn thành.')),
+      );
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Không thể hoàn thành tác vụ: $error')),
+      );
+    }
   }
 }
 
@@ -252,119 +290,6 @@ class TaskCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class TaskActionSheet extends StatelessWidget {
-  const TaskActionSheet({
-    super.key,
-    required this.task,
-    this.onMarkDone,
-  });
-
-  final Task task;
-  final Future<void> Function()? onMarkDone;
-
-  bool get _isCompleted {
-    final normalized = task.status.toLowerCase();
-    return normalized == 'completed' || normalized == 'complete';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dueDate = task.dueDate;
-    final dueDateLabel =
-        dueDate != null ? DateFormat('MMM d, yyyy').format(dueDate) : 'No due date';
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              task.title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text('Assignee: ${task.assignee}'),
-            const SizedBox(height: 4),
-            Text('Due: $dueDateLabel'),
-            const SizedBox(height: 4),
-            Text('Status: ${task.status}'),
-            if (task.description != null && task.description!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(task.description!),
-            ],
-            const SizedBox(height: 12),
-            SelectableText('QR Code: ${task.qrCode}'),
-            const SizedBox(height: 16),
-            if (!_isCompleted && onMarkDone != null)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.check_circle_outline),
-                title: const Text('Mark as done'),
-                onTap: () async {
-                  final callback = onMarkDone;
-                  if (callback == null) {
-                    return;
-                  }
-                  await callback();
-                },
-              ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.close),
-              title: const Text('Close'),
-              onTap: () => Navigator.of(context).pop(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.status});
-
-  final String status;
-
-  Color _backgroundColor(BuildContext context) {
-    final lower = status.toLowerCase();
-    final theme = Theme.of(context);
-    if (lower.contains('complete')) {
-      return theme.colorScheme.secondaryContainer;
-    }
-    if (lower.contains('progress')) {
-      return theme.colorScheme.tertiaryContainer;
-    }
-    return theme.colorScheme.primaryContainer;
-  }
-
-  Color _foregroundColor(BuildContext context) {
-    final lower = status.toLowerCase();
-    final theme = Theme.of(context);
-    if (lower.contains('complete')) {
-      return theme.colorScheme.onSecondaryContainer;
-    }
-    if (lower.contains('progress')) {
-      return theme.colorScheme.onTertiaryContainer;
-    }
-    return theme.colorScheme.onPrimaryContainer;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Chip(
-      label: Text(status),
-      backgroundColor: _backgroundColor(context),
-      labelStyle: TextStyle(color: _foregroundColor(context)),
     );
   }
 }

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 
+import '../components/app_bar_component.dart';
 import '../repository/task_repository.dart';
 import '../services/qr_service.dart';
 
@@ -349,11 +350,8 @@ class _ScanViewState extends State<ScanView> with WidgetsBindingObserver {
     }
 
     return Scaffold(
-      appBar: widget.showAppBar
-          ? AppBar(
-              title: const Text('Scan Task QR'),
-            )
-          : null,
+      appBar:
+          widget.showAppBar ? const AppBarComponent(title: 'Scan Task QR') : null,
       body: SafeArea(
         child: Column(
           children: [

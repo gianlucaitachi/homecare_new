@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../components/app_bar_component.dart';
+import '../components/bottom_bar_component.dart';
+import '../components/qr_scan_button.dart';
 import '../env.dart';
 import '../utils/app_router.dart';
 import '../repository/task_repository.dart';
@@ -55,10 +58,29 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _navigateToScanTab() {
+    if (_currentIndex == 1) {
+      return;
+    }
+    setState(() {
+      _currentIndex = 1;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBarComponent(title: _titles[_currentIndex]),
+      appBar: AppBarComponent(
+        title: _titles[_currentIndex],
+        actions: _currentIndex == 1
+            ? null
+            : [
+                QrScanButton(
+                  onPressed: _navigateToScanTab,
+                  tooltip: 'Chuyển đến quét QR',
+                ),
+              ],
+      ),
       body: IndexedStack(
         index: _currentIndex,
         children: <Widget>[

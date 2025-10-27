@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../components/app_bar_component.dart';
 import '../repository/task_repository.dart';
 
 class TaskFormView extends StatefulWidget {
@@ -124,9 +125,7 @@ class _TaskFormViewState extends State<TaskFormView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Task Form'),
-      ),
+      appBar: const AppBarComponent(title: 'Task Form'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),

@@ -5,16 +5,16 @@ class AppBarComponent extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     required this.title,
     this.actions,
+    this.centerTitle = false,
     this.leading,
-    this.centerTitle,
     this.backgroundColor,
     this.elevation,
   });
 
   final String title;
   final List<Widget>? actions;
+  final bool centerTitle;
   final Widget? leading;
-  final bool? centerTitle;
   final Color? backgroundColor;
   final double? elevation;
 
@@ -25,12 +25,11 @@ class AppBarComponent extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       title: Text(title),
-      actions: actions,
-      leading: leading,
       centerTitle: centerTitle,
+      leading: leading,
+      actions: actions,
       backgroundColor: backgroundColor,
       elevation: elevation,
-      titleSpacing: leading == null ? 16 : null,
     );
   }
 }

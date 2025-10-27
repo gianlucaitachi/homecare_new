@@ -1,32 +1,21 @@
 import 'package:flutter/material.dart';
 
-import '../utils/app_router.dart';
-
 class QrScanButton extends StatelessWidget {
   const QrScanButton({
     super.key,
-    this.label,
-    this.style,
-    this.onNavigate,
+    this.onPressed,
+    this.tooltip,
   });
 
-  final String? label;
-  final ButtonStyle? style;
-  final VoidCallback? onNavigate;
+  final VoidCallback? onPressed;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton.icon(
-      onPressed: () {
-        if (onNavigate != null) {
-          onNavigate!.call();
-          return;
-        }
-        Navigator.of(context).pushNamed(AppRouter.scanRoute);
-      },
-      style: style,
+    return IconButton(
       icon: const Icon(Icons.qr_code_scanner),
-      label: Text(label ?? 'Scan Code'),
+      tooltip: tooltip ?? 'Quét QR',
+      onPressed: onPressed,
     );
   }
 }
