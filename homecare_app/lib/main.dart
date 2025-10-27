@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'Repository/auth_repository.dart';
+import 'Services/auth_service.dart';
+import 'Services/token_storage.dart';
 import 'Utils/app_router.dart';
 import 'env.dart';
 
@@ -15,7 +18,16 @@ class HomecareApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: const [],
+      providers: [
+        Provider<TokenStorage>.value(value: TokenStorage.instance),
+        ProxyProvider<TokenStorage, AuthService>(
+          update: (_, tokenStorage, __) => AuthService(tokenStorage: tokenStorage),
+        ),
+        ProxyProvider2<AuthService, TokenStorage, AuthRepository>(
+          update: (_, authService, tokenStorage, __) =>
+              AuthRepository(authService: authService, tokenStorage: tokenStorage),
+        ),
+      ],
       child: MaterialApp(
         title: 'Homecare',
         theme: ThemeData(
