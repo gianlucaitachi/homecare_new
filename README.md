@@ -90,7 +90,7 @@ dart run tool/migrate.dart
 The script loads `DATABASE_URL` from the environment, applies any pending migrations in order, and records them in the `schema_migrations` table. Rerunning the command is safe—it skips migrations that are already applied.
 
 ## Flutter Mobile App
-The mobile client is a Flutter application that caregivers use in the field to view schedules, receive push notifications, record visit outcomes, and synchronize data with the backend service when connectivity is available. The Flutter code now lives in the `homecare_app/` project directory.
+The mobile client is a Flutter application that caregivers use in the field to view schedules, receive push notifications, record visit outcomes, and synchronize data with the backend service when connectivity is available. The Flutter code now lives in the `app/` project directory.
 
 ### Prerequisites
 - Flutter SDK 3.19+
@@ -116,7 +116,7 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000 --dart-define=SENTRY
 
 ### Running the Flutter App Locally
 1. Ensure the backend server is running so the mobile client can authenticate.
-2. Navigate to the Flutter project: `cd homecare_app`.
+2. Navigate to the Flutter project: `cd app`.
 3. Fetch dependencies: `flutter pub get`.
 4. Format and analyze (optional but recommended):
    - `flutter format lib`
@@ -129,7 +129,7 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000 --dart-define=SENTRY
    ```
 
 ### Local notifications
-- Copy the same configuration used for regular builds before testing reminders. Either create/update `homecare_app/.env` with the required keys (for example `API_BASE_URL`, `SENTRY_DSN`, and `GOOGLE_MAPS_API_KEY`) or provide them with `--dart-define` flags when you run `flutter run` or `flutter test`.
+- Copy the same configuration used for regular builds before testing reminders. Either create/update `app/.env` with the required keys (for example `API_BASE_URL`, `SENTRY_DSN`, and `GOOGLE_MAPS_API_KEY`) or provide them with `--dart-define` flags when you run `flutter run` or `flutter test`.
 - Grant notification permissions on your test device:
   - **Android 13+ (API 33+)**: After the app prompts for notifications, verify the permission in **Settings → Apps → Homecare → Notifications**. Toggle **Allow notifications** on if it was denied.
   - **iOS**: Accept the in-app prompt or enable it later under **Settings → Homecare → Notifications → Allow Notifications**.
