@@ -10,9 +10,16 @@ import '../repository/task_repository.dart';
 import '../services/qr_service.dart';
 
 class ScanView extends StatefulWidget {
-  const ScanView({super.key, required this.baseUrl});
+  const ScanView({
+    super.key,
+    required this.baseUrl,
+    this.onTaskCompleted,
+    this.showAppBar = true,
+  });
 
   final String baseUrl;
+  final Future<void> Function()? onTaskCompleted;
+  final bool showAppBar;
 
   @override
   State<ScanView> createState() => _ScanViewState();
@@ -132,7 +139,18 @@ class _ScanViewState extends State<ScanView> with WidgetsBindingObserver {
       messenger.showSnackBar(SnackBar(content: Text(message)));
 
       await Future.delayed(const Duration(milliseconds: 400));
-      if (mounted) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isProcessing = false;
+      });
+
+      final callback = widget.onTaskCompleted;
+      if (callback != null) {
+        await callback();
+      } else {
         Navigator.of(context).pop(true);
       }
     } on FormatException catch (error) {
@@ -294,9 +312,11 @@ class _ScanViewState extends State<ScanView> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Scan Task QR'),
-      ),
+      appBar: widget.showAppBar
+          ? AppBar(
+              title: const Text('Scan Task QR'),
+            )
+          : null,
       body: SafeArea(
         child: Column(
           children: [

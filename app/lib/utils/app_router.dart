@@ -19,7 +19,7 @@ class AppRouter {
       case loginRoute:
         return MaterialPageRoute(builder: (_) => const LoginView());
       case homeRoute:
-        return MaterialPageRoute(builder: (_) => HomeView(baseUrl: Env.backendBaseUrl));
+        return MaterialPageRoute(builder: (_) => const HomePage());
       case taskFormRoute:
         return MaterialPageRoute(builder: (_) => TaskFormView(baseUrl: Env.backendBaseUrl));
       case scanRoute:
