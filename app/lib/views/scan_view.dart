@@ -10,9 +10,16 @@ import '../repository/task_repository.dart';
 import '../services/qr_service.dart';
 
 class ScanView extends StatefulWidget {
-  const ScanView({super.key, required this.baseUrl});
+  const ScanView({
+    super.key,
+    required this.baseUrl,
+    this.onTaskCompleted,
+    this.showAppBar = true,
+  });
 
   final String baseUrl;
+  final Future<void> Function()? onTaskCompleted;
+  final bool showAppBar;
 
   @override
   State<ScanView> createState() => _ScanViewState();
@@ -132,7 +139,18 @@ class _ScanViewState extends State<ScanView> with WidgetsBindingObserver {
       messenger.showSnackBar(SnackBar(content: Text(message)));
 
       await Future.delayed(const Duration(milliseconds: 400));
-      if (mounted) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isProcessing = false;
+      });
+
+      final callback = widget.onTaskCompleted;
+      if (callback != null) {
+        await callback();
+      } else {
         Navigator.of(context).pop(true);
       }
     } on FormatException catch (error) {
@@ -291,12 +309,51 @@ class _ScanViewState extends State<ScanView> with WidgetsBindingObserver {
     );
   }
 
+  Widget _buildContent(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        children: [
+          Expanded(child: _buildScanner()),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tips',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text('• Ensure the entire QR code is visible in the frame.'),
+                const Text('• Keep the device steady while scanning.'),
+                const Text('• A confirmation will appear when the task is completed.'),
+                const SizedBox(height: 12),
+                Text(
+                  'Connected to: ${widget.baseUrl}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final content = _buildContent(context);
+    if (Scaffold.maybeOf(context) != null) {
+      return content;
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Scan Task QR'),
-      ),
+      appBar: widget.showAppBar
+          ? AppBar(
+              title: const Text('Scan Task QR'),
+            )
+          : null,
       body: SafeArea(
         child: Column(
           children: [

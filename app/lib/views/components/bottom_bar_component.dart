@@ -4,20 +4,20 @@ class BottomBarComponent extends StatelessWidget {
   const BottomBarComponent({
     super.key,
     required this.currentIndex,
-    this.onTap,
+    required this.onTabSelected,
   });
 
   final int currentIndex;
-  final ValueChanged<int>? onTap;
+  final ValueChanged<int> onTabSelected;
 
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
       currentIndex: currentIndex,
-      onTap: onTap,
+      onTap: onTabSelected,
       items: const [
         BottomNavigationBarItem(
-          icon: Icon(Icons.checklist_rounded),
+          icon: Icon(Icons.list_alt),
           label: 'Tasks',
         ),
         BottomNavigationBarItem(
