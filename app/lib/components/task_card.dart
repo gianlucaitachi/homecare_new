@@ -7,15 +7,13 @@ class TaskCard extends StatelessWidget {
   const TaskCard({
     super.key,
     required this.task,
-    this.onTap,
-    this.onEdit,
-    this.onMarkComplete,
+    required this.onOpenActions,
+    this.onMarkDone,
   });
 
   final Task task;
-  final VoidCallback? onTap;
-  final VoidCallback? onEdit;
-  final VoidCallback? onMarkComplete;
+  final VoidCallback onOpenActions;
+  final VoidCallback? onMarkDone;
 
   bool get _isCompleted {
     final value = task.status.toLowerCase();
@@ -64,40 +62,6 @@ class TaskCard extends StatelessWidget {
     return colors.onSurfaceVariant;
   }
 
-  Future<void> _showActions(BuildContext context) async {
-    final navigator = Navigator.of(context);
-    await showModalBottomSheet<void>(
-      context: context,
-      builder: (bottomSheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: const Text('Chỉnh sửa'),
-                enabled: onEdit != null,
-                onTap: () {
-                  navigator.pop();
-                  onEdit?.call();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.check_circle_outline),
-                title: const Text('Đánh dấu hoàn thành'),
-                enabled: onMarkComplete != null,
-                onTap: () {
-                  navigator.pop();
-                  onMarkComplete?.call();
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -107,6 +71,7 @@ class TaskCard extends StatelessWidget {
         ? colors.errorContainer
         : theme.cardTheme.color ?? theme.colorScheme.surface;
     final textColor = _isOverdue ? colors.onErrorContainer : null;
+    final canMarkDone = !_isCompleted && onMarkDone != null;
 
     final content = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -138,13 +103,19 @@ class TaskCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (onEdit != null || onMarkComplete != null)
+              if (canMarkDone)
                 IconButton(
-                  icon: const Icon(Icons.more_vert),
-                  color: textColor ?? theme.iconTheme.color,
-                  tooltip: 'Tùy chọn',
-                  onPressed: () => _showActions(context),
+                  icon: const Icon(Icons.check_circle_outline),
+                  color: textColor ?? colors.primary,
+                  tooltip: 'Đánh dấu hoàn thành',
+                  onPressed: onMarkDone,
                 ),
+              IconButton(
+                icon: const Icon(Icons.more_vert),
+                color: textColor ?? theme.iconTheme.color,
+                tooltip: 'Tùy chọn',
+                onPressed: onOpenActions,
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -167,7 +138,7 @@ class TaskCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    _dueDateLabel,
+                    formatDueDate(task.dueDate),
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontWeight: _isOverdue ? FontWeight.w600 : FontWeight.normal,
                       color: _isOverdue
@@ -186,22 +157,24 @@ class TaskCard extends StatelessWidget {
               style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
             ),
           ],
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(
-                Icons.qr_code_2_outlined,
-                color: textColor ?? colors.primary,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: SelectableText(
-                  task.qrCode,
-                  style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
+          if (task.qrCode.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(
+                  Icons.qr_code_2_outlined,
+                  color: textColor ?? colors.primary,
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SelectableText(
+                    task.qrCode,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -212,11 +185,7 @@ class TaskCard extends StatelessWidget {
       color: cardColor,
       elevation: _isOverdue ? 4 : 1,
       child: InkWell(
-        onTap: onTap ?? () {
-          if (onEdit != null || onMarkComplete != null) {
-            _showActions(context);
-          }
-        },
+        onTap: onOpenActions,
         child: content,
       ),
     );
