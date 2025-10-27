@@ -87,7 +87,7 @@ dart run tool/migrate.dart
 The script loads `DATABASE_URL` from the environment, applies any pending migrations in order, and records them in the `schema_migrations` table. Rerunning the command is safe—it skips migrations that are already applied.
 
 ## Flutter Mobile App
-The mobile client is a Flutter application that caregivers use in the field to view schedules, receive push notifications, record visit outcomes, and synchronize data with the backend service when connectivity is available. The Flutter code lives in the `mobile_app` project directory.
+The mobile client is a Flutter application that caregivers use in the field to view schedules, receive push notifications, record visit outcomes, and synchronize data with the backend service when connectivity is available. The Flutter code now lives in the `homecare_app/` project directory.
 
 ### Prerequisites
 - Flutter SDK 3.19+
@@ -113,14 +113,32 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000 --dart-define=SENTRY
 
 ### Running the Flutter App Locally
 1. Ensure the backend server is running so the mobile client can authenticate.
-2. Navigate to the Flutter project: `cd mobile_app`.
+2. Navigate to the Flutter project: `cd homecare_app`.
 3. Fetch dependencies: `flutter pub get`.
 4. Format and analyze (optional but recommended):
    - `flutter format lib`
    - `flutter analyze`
-5. Run integration tests if available: `flutter test`.
-6. Launch the app on an emulator or device: `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000`.
-7. For iOS, open `ios/Runner.xcworkspace` in Xcode and run on a simulator or device after running `flutter pub get`.
+5. Launch the application, providing the backend base URL that should be injected into the runtime configuration:
+   ```
+   flutter run \
+     --dart-define=BACKEND_BASE_URL=http://10.0.2.2:8080 \
+     --flavor dev
+   ```
+
+### Build Artifacts
+- **Android:**
+  ```
+  flutter build apk --dart-define=BACKEND_BASE_URL=https://api.example.com
+  ```
+- **iOS (on macOS):**
+  ```
+  flutter build ios --dart-define=BACKEND_BASE_URL=https://api.example.com
+  ```
+
+The `BACKEND_BASE_URL` value is consumed by `env.dart` through `String.fromEnvironment`, ensuring the router and services point to the correct API endpoint in every build.
+6. Run integration tests if available: `flutter test`.
+7. Launch the app on an emulator or device, again supplying the backend URL: `flutter run --dart-define=BACKEND_BASE_URL=http://10.0.2.2:8080`.
+8. For iOS, open `ios/Runner.xcworkspace` in Xcode and run on a simulator or device after running `flutter pub get`.
 
 ## Coordinating Backend and Mobile Development
 - Start PostgreSQL and (optionally) Redis before running the backend.

@@ -1,0 +1,21 @@
+# Flutter/Dart/Pub related
+.dart_tool/
+.packages
+.pub-cache/
+build/
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# Android
+android/.gradle/
+android/app/build/
+
+# iOS
+ios/Flutter/
+ios/Pods/
+
+# Misc
+*.lock
