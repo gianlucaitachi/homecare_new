@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'Repository/auth_repository.dart';
-import 'Services/auth_service.dart';
-import 'Services/token_storage.dart';
+import 'Services/services.dart';
 import 'Utils/app_router.dart';
 import 'env.dart';
 
