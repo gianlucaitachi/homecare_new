@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Homecare support channel
+    url: mailto:maintainers@homecare.local
+    about: Please reach out directly for security disclosures or urgent production issues.
