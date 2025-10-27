@@ -1,203 +1,208 @@
-import 'dart:async';
-
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/task.dart';
 import '../repository/task_repository.dart';
-import '../widgets/task_action_sheet.dart';
-import '../widgets/task_card.dart';
 
 class TaskListView extends StatefulWidget {
   const TaskListView({super.key});
 
   @override
-  State<TaskListView> createState() => _TaskListViewState();
+  TaskListViewState createState() => TaskListViewState();
 }
 
-class _TaskListViewState extends State<TaskListView> {
-  bool _isInitializing = false;
+class TaskListViewState extends State<TaskListView> {
+  late Future<List<Task>> _tasksFuture;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_hydrateIfNecessary());
-    });
+    _tasksFuture = _loadTasks();
   }
 
-  Future<void> _hydrateIfNecessary() async {
+  Future<List<Task>> _loadTasks({bool forceRefresh = false}) {
     final repository = context.read<TaskRepository>();
-    if (repository.tasks.isNotEmpty) {
-      return;
-    }
+    return repository.fetchTasks(forceRefresh: forceRefresh);
+  }
 
+  Future<void> refreshTasks({bool forceRefresh = true}) async {
     setState(() {
-      _isInitializing = true;
+      _tasksFuture = _loadTasks(forceRefresh: forceRefresh);
     });
-
-    try {
-      await repository.fetchTasks();
-    } on DioException catch (error) {
-      _showError(_messageFromDio(error) ??
-          'Failed to load tasks. Please try pulling to refresh.');
-    } catch (_) {
-      _showError('Failed to load tasks. Please try pulling to refresh.');
-    } finally {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _isInitializing = false;
-      });
-    }
-  }
-
-  Future<void> _refreshTasks(TaskRepository repository) async {
-    try {
-      await repository.fetchTasks(forceRefresh: true);
-    } on DioException catch (error) {
-      _showError(
-        _messageFromDio(error) ?? 'Failed to refresh tasks. Please try again.',
-      );
-    } catch (_) {
-      _showError('Failed to refresh tasks. Please try again.');
-    }
-  }
-
-  Future<void> _markTaskComplete(Task task) async {
-    try {
-      final repository = context.read<TaskRepository>();
-      await repository.updateTask(task.id, const {'status': 'completed'});
-      await repository.fetchTasks(forceRefresh: true);
-      if (!mounted) {
-        return;
-      }
-      final title = task.title.trim();
-      final message = title.isEmpty
-          ? 'Task marked as complete.'
-          : 'Marked "$title" as complete.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-    } on DioException catch (error) {
-      _showError(
-        _messageFromDio(error) ??
-            'Failed to mark the task as complete. Please try again.',
-      );
-    } catch (_) {
-      _showError('Failed to mark the task as complete. Please try again.');
-    }
-  }
-
-  Future<void> _showTaskActionSheet(Task task) {
-    return TaskActionSheet.show(context: context, task: task);
-  }
-
-  void _showError(String message) {
-    if (!mounted) {
-      return;
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-
-  String? _messageFromDio(DioException error) {
-    final data = error.response?.data;
-    if (data is Map<String, dynamic>) {
-      final message = data['message'] ?? data['error'];
-      if (message is String && message.trim().isNotEmpty) {
-        return message.trim();
-      }
-    } else if (data is Map) {
-      final map = Map<String, dynamic>.from(data as Map);
-      final message = map['message'] ?? map['error'];
-      if (message is String && message.trim().isNotEmpty) {
-        return message.trim();
-      }
-    }
-    return error.message;
+    await _tasksFuture;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<TaskRepository>(
-      builder: (context, repository, _) {
-        final tasks = repository.tasks;
+    return SafeArea(
+      child: FutureBuilder<List<Task>>(
+        future: _tasksFuture,
+        builder: (context, snapshot) {
+          final repository = context.watch<TaskRepository>();
+          final tasks = repository.tasks;
 
-        return RefreshIndicator(
-          onRefresh: () => _refreshTasks(repository),
-          child: tasks.isEmpty
-              ? _buildEmptyState()
-              : ListView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: tasks.length,
-                  itemBuilder: (context, index) {
-                    final task = tasks[index];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: TaskCard(
-                        task: task,
-                        onTap: () => _handleTap(task),
-                        onMarkDone: () => _handleMarkDone(task),
-                      ),
-                    );
-                  },
-                ),
-        );
-      },
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              tasks.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError && tasks.isEmpty) {
+            return _RefreshableMessage(
+              onRefresh: refreshTasks,
+              message:
+                  'Failed to load tasks. Pull down to try again.',
+            );
+          }
+
+          if (tasks.isEmpty) {
+            return _RefreshableMessage(
+              onRefresh: refreshTasks,
+              message:
+                  'No tasks available yet. Pull down to refresh.',
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: refreshTasks,
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: tasks.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final task = tasks[index];
+                return _TaskCard(task: task);
+              },
+            ),
+          );
+        },
+      ),
     );
   }
+}
 
-  void _handleTap(Task task) {
-    unawaited(_showTaskActionSheet(task));
-  }
+class _RefreshableMessage extends StatelessWidget {
+  const _RefreshableMessage({
+    required this.onRefresh,
+    required this.message,
+  });
 
-  void _handleMarkDone(Task task) {
-    unawaited(_markTaskComplete(task));
-  }
+  final Future<void> Function({bool forceRefresh}) onRefresh;
+  final String message;
 
-  Widget _buildEmptyState() {
-    if (_isInitializing) {
-      return ListView(
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(      
+      onRefresh: () => onRefresh(forceRefresh: true),
+      child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        children: [
+          Center(
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ),
         ],
-      );
-    }
+      ),
+    );
+  }
+}
 
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(32),
-      children: const [
-        SizedBox(height: 48),
-        Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.task_alt, size: 72, color: Colors.grey),
-              SizedBox(height: 16),
+class _TaskCard extends StatelessWidget {
+  const _TaskCard({required this.task});
+
+  final Task task;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dueDate = task.dueDate;
+    final dueDateLabel = dueDate != null
+        ? DateFormat('MMM d, yyyy').format(dueDate)
+        : 'No due date';
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    task.title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                _StatusChip(status: task.status),
+              ],
+            ),
+            if (task.description != null && task.description!.isNotEmpty) ...[
+              const SizedBox(height: 8),
               Text(
-                'No tasks available right now.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Pull down to refresh or create a new task to get started.',
-                textAlign: TextAlign.center,
+                task.description!,
+                style: theme.textTheme.bodyMedium,
               ),
             ],
-          ),
+            const SizedBox(height: 12),
+            Text('Assignee: ${task.assignee}'),
+            const SizedBox(height: 4),
+            Text('Due: $dueDateLabel'),
+            const SizedBox(height: 8),
+            SelectableText(
+              'QR Code: ${task.qrCode}',
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.status});
+
+  final String status;
+
+  Color _backgroundColor(BuildContext context) {
+    final lower = status.toLowerCase();
+    final theme = Theme.of(context);
+    if (lower.contains('complete')) {
+      return theme.colorScheme.secondaryContainer;
+    }
+    if (lower.contains('progress')) {
+      return theme.colorScheme.tertiaryContainer;
+    }
+    return theme.colorScheme.primaryContainer;
+  }
+
+  Color _foregroundColor(BuildContext context) {
+    final lower = status.toLowerCase();
+    final theme = Theme.of(context);
+    if (lower.contains('complete')) {
+      return theme.colorScheme.onSecondaryContainer;
+    }
+    if (lower.contains('progress')) {
+      return theme.colorScheme.onTertiaryContainer;
+    }
+    return theme.colorScheme.onPrimaryContainer;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      label: Text(status),
+      backgroundColor: _backgroundColor(context),
+      labelStyle: TextStyle(color: _foregroundColor(context)),
     );
   }
 }
