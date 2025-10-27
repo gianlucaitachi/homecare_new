@@ -78,6 +78,7 @@ class _HomecareAppState extends State<HomecareApp> {
         Provider<NotificationService>.value(value: widget.notificationService),
         Provider<TokenStorage>.value(value: TokenStorage.instance),
         Provider<TaskStorage>.value(value: TaskStorage.instance),
+        Provider<NotificationService>(create: (_) => const NotificationService()),
         ProxyProvider<TokenStorage, AuthService>(
           update: (_, tokenStorage, __) => AuthService(tokenStorage: tokenStorage),
         ),
@@ -88,12 +89,17 @@ class _HomecareAppState extends State<HomecareApp> {
         ProxyProvider<AuthService, TaskService>(
           update: (_, authService, __) => TaskService(authService: authService),
         ),
-        ChangeNotifierProxyProvider2<TaskService, TaskStorage, TaskRepository>(
+        ChangeNotifierProxyProvider3<TaskService, TaskStorage,
+            NotificationService, TaskRepository>(
           create: (_) => TaskRepository(),
-          update: (_, taskService, taskStorage, repository) {
-            final repo = repository ??
-                TaskRepository(taskService: taskService, taskStorage: taskStorage);
+          update: (_, taskService, taskStorage, notificationService, repository) {
+            final repo = repository ?? TaskRepository(
+              taskService: taskService,
+              taskStorage: taskStorage,
+              notificationService: notificationService,
+            );
             repo.updateTaskService(taskService);
+            repo.updateNotificationService(notificationService);
             return repo;
           },
         ),

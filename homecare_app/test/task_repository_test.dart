@@ -1,0 +1,223 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:homecare_app/Models/task.dart';
+import 'package:homecare_app/Repository/task_repository.dart';
+import 'package:homecare_app/Services/notification_service.dart';
+import 'package:homecare_app/Services/task_service.dart';
+import 'package:homecare_app/Services/task_storage.dart';
+
+class FakeTaskService extends TaskService {
+  FakeTaskService() : super(dio: Dio());
+
+  Response<Map<String, dynamic>>? createResponse;
+  Response<Map<String, dynamic>>? updateResponse;
+  Response<Map<String, dynamic>>? completeResponse;
+
+  @override
+  Future<Response<T>> post<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    if (path.endsWith('/complete-qr')) {
+      final response = completeResponse;
+      if (response == null) {
+        throw StateError('completeResponse not set');
+      }
+      return response as Response<T>;
+    }
+
+    final response = createResponse;
+    if (response == null) {
+      throw StateError('createResponse not set');
+    }
+    return response as Response<T>;
+  }
+
+  @override
+  Future<Response<T>> put<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final response = updateResponse;
+    if (response == null) {
+      throw StateError('updateResponse not set');
+    }
+    return response as Response<T>;
+  }
+
+  @override
+  Future<Response<T>> delete<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    return Response<T>(requestOptions: RequestOptions(path: path));
+  }
+}
+
+class RecordingNotificationService extends NotificationService {
+  RecordingNotificationService({this.generatedId});
+
+  final String? generatedId;
+  final List<Task> scheduled = <Task>[];
+  final List<String> cancelled = <String>[];
+
+  @override
+  Future<String?> scheduleNotification(Task task) async {
+    scheduled.add(task);
+    return generatedId ?? task.id;
+  }
+
+  @override
+  Future<void> cancelNotification(String notificationId) async {
+    cancelled.add(notificationId);
+  }
+}
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('TaskRepository notifications', () {
+    late FakeTaskService taskService;
+    late RecordingNotificationService notificationService;
+    late TaskRepository repository;
+
+    setUp(() {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      taskService = FakeTaskService();
+      notificationService = RecordingNotificationService();
+      repository = TaskRepository(
+        taskService: taskService,
+        taskStorage: TaskStorage.instance,
+        notificationService: notificationService,
+      );
+    });
+
+    test('createTask schedules notifications for future due dates', () async {
+      final dueDate =
+          DateTime.now().add(const Duration(days: 1)).toUtc().toIso8601String();
+      final taskJson = <String, dynamic>{
+        'id': '1',
+        'title': 'Visit patient',
+        'assignee': 'Nurse Joy',
+        'dueDate': dueDate,
+        'status': 'pending',
+        'qr_code': 'abc123',
+      };
+      taskService.createResponse = Response<Map<String, dynamic>>(
+        data: <String, dynamic>{'task': taskJson},
+        requestOptions: RequestOptions(path: '/api/tasks'),
+      );
+
+      final task = await repository.createTask(<String, dynamic>{});
+
+      expect(task.id, '1');
+      expect(notificationService.scheduled, hasLength(1));
+      expect(notificationService.scheduled.first.id, task.id);
+      expect(
+        repository.scheduledNotificationIds[task.id],
+        equals(task.id),
+      );
+    });
+
+    test('updateTask re-schedules notifications for future due dates', () async {
+      final initialDue =
+          DateTime.now().add(const Duration(days: 2)).toUtc().toIso8601String();
+      final initialTask = <String, dynamic>{
+        'id': '2',
+        'title': 'Collect samples',
+        'assignee': 'Nurse Dan',
+        'dueDate': initialDue,
+        'status': 'pending',
+        'qr_code': 'qr-initial',
+      };
+      taskService.createResponse = Response<Map<String, dynamic>>(
+        data: <String, dynamic>{'task': initialTask},
+        requestOptions: RequestOptions(path: '/api/tasks'),
+      );
+      await repository.createTask(<String, dynamic>{});
+
+      final newDue =
+          DateTime.now().add(const Duration(days: 3)).toUtc().toIso8601String();
+      final updatedTask = Map<String, dynamic>.from(initialTask)
+        ..['dueDate'] = newDue;
+      taskService.updateResponse = Response<Map<String, dynamic>>(
+        data: <String, dynamic>{'task': updatedTask},
+        requestOptions: RequestOptions(path: '/api/tasks/2'),
+      );
+
+      final task = await repository.updateTask('2', <String, dynamic>{});
+
+      expect(task.dueDate, newDue);
+      expect(notificationService.scheduled, hasLength(2));
+      expect(notificationService.scheduled.last.id, task.id);
+    });
+
+    test('deleteTask cancels scheduled notifications', () async {
+      final dueDate =
+          DateTime.now().add(const Duration(days: 1)).toUtc().toIso8601String();
+      final taskJson = <String, dynamic>{
+        'id': '3',
+        'title': 'Deliver medicine',
+        'assignee': 'Nurse Ana',
+        'dueDate': dueDate,
+        'status': 'pending',
+        'qr_code': 'qr-delete',
+      };
+      taskService.createResponse = Response<Map<String, dynamic>>(
+        data: <String, dynamic>{'task': taskJson},
+        requestOptions: RequestOptions(path: '/api/tasks'),
+      );
+      final task = await repository.createTask(<String, dynamic>{});
+
+      await repository.deleteTask(task.id);
+
+      expect(notificationService.cancelled, contains(task.id));
+      expect(repository.scheduledNotificationIds.containsKey(task.id), isFalse);
+    });
+
+    test('completeByQr cancels scheduled notifications', () async {
+      final dueDate =
+          DateTime.now().add(const Duration(days: 1)).toUtc().toIso8601String();
+      final taskJson = <String, dynamic>{
+        'id': '4',
+        'title': 'Check vitals',
+        'assignee': 'Nurse Lee',
+        'dueDate': dueDate,
+        'status': 'pending',
+        'qr_code': 'qr-complete',
+      };
+      taskService.createResponse = Response<Map<String, dynamic>>(
+        data: <String, dynamic>{'task': taskJson},
+        requestOptions: RequestOptions(path: '/api/tasks'),
+      );
+      await repository.createTask(<String, dynamic>{});
+
+      final completedTask = Map<String, dynamic>.from(taskJson)
+        ..['status'] = 'completed';
+      taskService.completeResponse = Response<Map<String, dynamic>>(
+        data: <String, dynamic>{'task': completedTask},
+        requestOptions: RequestOptions(path: '/api/tasks/4/complete-qr'),
+      );
+
+      await repository.completeByQr(id: '4', code: 'qr-complete');
+
+      expect(notificationService.cancelled, contains('4'));
+      expect(repository.scheduledNotificationIds.containsKey('4'), isFalse);
+    });
+  });
+}
