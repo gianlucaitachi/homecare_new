@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/task.dart';
 import '../repository/task_repository.dart';
+import '../components/task_card.dart';
 
 class TaskListView extends StatefulWidget {
   const TaskListView({super.key});
@@ -71,13 +71,40 @@ class TaskListViewState extends State<TaskListView> {
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final task = tasks[index];
-                return _TaskCard(task: task);
+                return TaskCard(
+                  task: task,
+                  onEdit: () => _handleEditTask(task),
+                  onMarkComplete: () => _handleMarkComplete(task),
+                );
               },
             ),
           );
         },
       ),
     );
+  }
+
+  void _handleEditTask(Task task) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      SnackBar(content: Text('Chỉnh sửa "${task.title}" chưa được hỗ trợ.')),
+    );
+  }
+
+  Future<void> _handleMarkComplete(Task task) async {
+    final repository = context.read<TaskRepository>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      await repository.updateTask(task.id, {'status': 'completed'});
+      messenger.showSnackBar(
+        SnackBar(content: Text('Đã đánh dấu "${task.title}" hoàn thành.')),
+      );
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Không thể hoàn thành tác vụ: $error')),
+      );
+    }
   }
 }
 
@@ -107,102 +134,6 @@ class _RefreshableMessage extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _TaskCard extends StatelessWidget {
-  const _TaskCard({required this.task});
-
-  final Task task;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dueDate = task.dueDate;
-    final dueDateLabel = dueDate != null
-        ? DateFormat('MMM d, yyyy').format(dueDate)
-        : 'No due date';
-
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    task.title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                _StatusChip(status: task.status),
-              ],
-            ),
-            if (task.description != null && task.description!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                task.description!,
-                style: theme.textTheme.bodyMedium,
-              ),
-            ],
-            const SizedBox(height: 12),
-            Text('Assignee: ${task.assignee}'),
-            const SizedBox(height: 4),
-            Text('Due: $dueDateLabel'),
-            const SizedBox(height: 8),
-            SelectableText(
-              'QR Code: ${task.qrCode}',
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.status});
-
-  final String status;
-
-  Color _backgroundColor(BuildContext context) {
-    final lower = status.toLowerCase();
-    final theme = Theme.of(context);
-    if (lower.contains('complete')) {
-      return theme.colorScheme.secondaryContainer;
-    }
-    if (lower.contains('progress')) {
-      return theme.colorScheme.tertiaryContainer;
-    }
-    return theme.colorScheme.primaryContainer;
-  }
-
-  Color _foregroundColor(BuildContext context) {
-    final lower = status.toLowerCase();
-    final theme = Theme.of(context);
-    if (lower.contains('complete')) {
-      return theme.colorScheme.onSecondaryContainer;
-    }
-    if (lower.contains('progress')) {
-      return theme.colorScheme.onTertiaryContainer;
-    }
-    return theme.colorScheme.onPrimaryContainer;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Chip(
-      label: Text(status),
-      backgroundColor: _backgroundColor(context),
-      labelStyle: TextStyle(color: _foregroundColor(context)),
     );
   }
 }
