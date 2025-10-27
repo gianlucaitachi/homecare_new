@@ -4,11 +4,11 @@ class BottomBarComponent extends StatelessWidget {
   const BottomBarComponent({
     super.key,
     required this.currentIndex,
-    required this.onTabSelected,
+    required this.onTap,
   });
 
   final int currentIndex;
-  final ValueChanged<int> onTabSelected;
+  final ValueChanged<int> onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +16,7 @@ class BottomBarComponent extends StatelessWidget {
 
     return BottomNavigationBar(
       currentIndex: currentIndex,
-      onTap: onTabSelected,
+      onTap: onTap,
       type: BottomNavigationBarType.fixed,
       showUnselectedLabels: true,
       selectedItemColor: theme.colorScheme.primary,
