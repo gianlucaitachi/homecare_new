@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'Repository/auth_repository.dart';
+import 'Repositories/task_repository.dart';
 import 'Services/auth_service.dart';
+import 'Services/qr_service.dart';
 import 'Services/token_storage.dart';
 import 'Utils/app_router.dart';
 import 'env.dart';
@@ -41,6 +43,10 @@ class HomecareApp extends StatelessWidget {
         ProxyProvider2<AuthService, TokenStorage, AuthRepository>(
           update: (_, authService, tokenStorage, __) =>
               AuthRepository(authService: authService, tokenStorage: tokenStorage),
+        ),
+        const Provider<QrService>.value(value: QrService()),
+        ProxyProvider<AuthService, TaskRepository>(
+          update: (_, authService, __) => TaskRepository(authService: authService),
         ),
       ],
       child: MaterialApp(
