@@ -34,12 +34,25 @@ class HomecareApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<TokenStorage>.value(value: TokenStorage.instance),
+        Provider<TaskStorage>.value(value: TaskStorage.instance),
         ProxyProvider<TokenStorage, AuthService>(
           update: (_, tokenStorage, __) => AuthService(tokenStorage: tokenStorage),
         ),
         ProxyProvider2<AuthService, TokenStorage, AuthRepository>(
           update: (_, authService, tokenStorage, __) =>
               AuthRepository(authService: authService, tokenStorage: tokenStorage),
+        ),
+        ProxyProvider<AuthService, TaskService>(
+          update: (_, authService, __) => TaskService(authService: authService),
+        ),
+        ChangeNotifierProxyProvider2<TaskService, TaskStorage, TaskRepository>(
+          create: (_) => TaskRepository(),
+          update: (_, taskService, taskStorage, repository) {
+            final repo = repository ??
+                TaskRepository(taskService: taskService, taskStorage: taskStorage);
+            repo.updateTaskService(taskService);
+            return repo;
+          },
         ),
       ],
       child: MaterialApp(
