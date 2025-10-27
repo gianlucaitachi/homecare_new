@@ -104,8 +104,8 @@ class TaskListViewState extends State<TaskListView> {
                 final task = tasks[index];
                 return TaskCard(
                   task: task,
-                  onEdit: () => _handleEditTask(task),
-                  onMarkComplete: () => _handleMarkComplete(task),
+                  onOpenActions: () => _openTaskActions(task),
+                  onMarkDone: () => _handleMarkComplete(task),
                 );
               },
             );
