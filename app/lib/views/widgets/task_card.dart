@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../../models/task.dart';
+import '../../utils/date_format.dart';
 
 typedef TaskAsyncCallback = Future<void> Function();
 
@@ -63,9 +63,7 @@ class TaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dueDate = task.dueDate;
-    final dueDateLabel = dueDate != null
-        ? DateFormat.yMMMMd().format(dueDate.toLocal())
-        : 'No due date';
+    final dueDateLabel = formatDueDate(dueDate?.toLocal());
 
     final statusStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
           color: _statusColor(context, task.status),
