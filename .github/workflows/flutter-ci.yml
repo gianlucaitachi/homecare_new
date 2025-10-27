@@ -2,13 +2,18 @@ name: Flutter CI
 
 on:
   push:
-    branches: [ main ]
+    paths:
+      - 'app/**'
+      - '.github/workflows/flutter-ci.yml'
   pull_request:
-    branches: [ main ]
+    paths:
+      - 'app/**'
+      - '.github/workflows/flutter-ci.yml'
 
 jobs:
-  build:
+  flutter:
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: app
@@ -16,40 +21,36 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          path: app
 
-      - name: Install Flutter
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
 
-      - name: Cache Flutter packages
+      - name: Cache pub packages
         uses: actions/cache@v3
         with:
-          path: ~/.pub-cache
-          key: flutter-pub-${{ runner.os }}-${{ hashFiles('app/app/pubspec.lock') }}
+          path: |
+            ~/.pub-cache
+            app/.dart_tool
+          key: ${{ runner.os }}-flutter-${{ hashFiles('app/pubspec.lock') }}
           restore-keys: |
-            flutter-pub-${{ runner.os }}-
+            ${{ runner.os }}-flutter-
 
-      - name: Flutter pub get
+      - name: Install dependencies
         run: flutter pub get
-        working-directory: app/app
 
-      - name: Flutter analyze
+      - name: Analyze
         run: flutter analyze
-        working-directory: app/app
 
-      - name: Flutter test
+      - name: Test
         run: flutter test
-        working-directory: app/app
 
       - name: Build debug APK
         run: flutter build apk --debug
-        working-directory: app/app
 
-      - name: Upload debug APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: app/app/build/app/outputs/flutter-apk/app-debug.apk
+          path: app/build/app/outputs/flutter-apk/app-debug.apk
