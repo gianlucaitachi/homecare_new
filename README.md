@@ -1,5 +1,8 @@
 # Homecare New
 
+[![Backend CI](https://github.com/gianlucaitachi/homecare_new/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/gianlucaitachi/homecare_new/actions/workflows/backend-ci.yml)
+[![Flutter CI](https://github.com/gianlucaitachi/homecare_new/actions/workflows/flutter-ci.yml/badge.svg)](https://github.com/gianlucaitachi/homecare_new/actions/workflows/flutter-ci.yml)
+
 ## Project Purpose
 Homecare New is an end-to-end platform that helps home health agencies coordinate caregivers, schedule visits, and share care plans with families. The goal is to provide a lightweight reference implementation that demonstrates how the backend API and the Flutter mobile client interact to deliver core workflows such as onboarding a patient, assigning a caregiver, and capturing visit notes in the field.
 
