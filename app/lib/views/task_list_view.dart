@@ -115,11 +115,12 @@ class TaskListViewState extends State<TaskListView> {
     );
   }
 
-  void _handleEditTask(Task task) {
+  Future<void> _handleEditTask(Task task) async {
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       SnackBar(content: Text('Chỉnh sửa "${task.title}" chưa được hỗ trợ.')),
     );
+    await refreshTasks(forceRefresh: true);
   }
 
   Future<void> _handleMarkComplete(Task task) async {
@@ -131,10 +132,67 @@ class TaskListViewState extends State<TaskListView> {
       messenger.showSnackBar(
         SnackBar(content: Text('Đã đánh dấu "${task.title}" hoàn thành.')),
       );
+      await repository.fetchTasks(forceRefresh: true);
     } catch (error) {
       messenger.showSnackBar(
         SnackBar(content: Text('Không thể hoàn thành tác vụ: $error')),
       );
     }
   }
+
+  Future<void> _openTaskActions(Task task) async {
+    final action = await showModalBottomSheet<_TaskAction>(
+      context: context,
+      builder: (context) {
+        final theme = Theme.of(context);
+        final tiles = <Widget>[
+          ListTile(
+            leading: const Icon(Icons.edit_outlined),
+            title: const Text('Chỉnh sửa tác vụ'),
+            onTap: () => Navigator.pop(context, _TaskAction.edit),
+          ),
+        ];
+
+        final isCompleted = task.status.toLowerCase().contains('complete') ||
+            task.status.toLowerCase() == 'done';
+        if (!isCompleted) {
+          tiles.add(
+            ListTile(
+              leading: Icon(Icons.check_circle_outline, color: theme.colorScheme.primary),
+              title: const Text('Đánh dấu hoàn thành'),
+              onTap: () => Navigator.pop(context, _TaskAction.markDone),
+            ),
+          );
+        }
+
+        tiles.add(
+          ListTile(
+            leading: const Icon(Icons.close),
+            title: const Text('Hủy'),
+            onTap: () => Navigator.pop(context),
+          ),
+        );
+
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: tiles,
+          ),
+        );
+      },
+    );
+
+    switch (action) {
+      case _TaskAction.edit:
+        await _handleEditTask(task);
+        break;
+      case _TaskAction.markDone:
+        await _handleMarkComplete(task);
+        break;
+      default:
+        break;
+    }
+  }
 }
+
+enum _TaskAction { edit, markDone }
