@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/task.dart';
 import '../repository/task_repository.dart';
+import '../utils/date_format.dart';
 
 class TaskListView extends StatefulWidget {
   const TaskListView({super.key});
