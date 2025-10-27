@@ -186,7 +186,7 @@ class TaskRepository extends ChangeNotifier {
   }
 
   Future<void> _scheduleNotificationForTask(Task task) async {
-    final dueDate = DateTime.tryParse(task.dueDate);
+    final dueDate = task.dueDate;
     if (_isTaskComplete(task) || !_isDueDateInFuture(dueDate)) {
       await _cancelScheduledNotification(task.id);
       return;
