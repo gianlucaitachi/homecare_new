@@ -139,6 +139,7 @@ void main() {
     test('createTask schedules notifications for future due dates', () async {
       final dueDate =
           DateTime.now().add(const Duration(days: 1)).toUtc().toIso8601String();
+      const description = 'Visit patient at home';
       final taskJson = <String, dynamic>{
         'id': '1',
         'title': 'Visit patient',
@@ -146,6 +147,7 @@ void main() {
         'dueDate': dueDate,
         'status': 'pending',
         'qr_code': 'abc123',
+        'description': description,
       };
       taskService.createResponse = Response<Map<String, dynamic>>(
         data: <String, dynamic>{'task': taskJson},
@@ -155,6 +157,8 @@ void main() {
       final task = await repository.createTask(<String, dynamic>{});
 
       expect(task.id, '1');
+      expect(task.dueDate?.toUtc(), DateTime.parse(dueDate).toUtc());
+      expect(task.description, description);
       expect(notificationService.scheduled, hasLength(1));
       expect(
         notificationService.scheduled.first.id,
@@ -163,6 +167,10 @@ void main() {
       expect(
         repository.scheduledNotificationIds[task.id],
         equals(notificationService.scheduled.first.id),
+      );
+      expect(
+        notificationService.scheduled.first.scheduledDate,
+        task.dueDate?.toLocal(),
       );
     });
 
@@ -176,6 +184,7 @@ void main() {
         'dueDate': initialDue,
         'status': 'pending',
         'qr_code': 'qr-initial',
+        'description': 'Collect blood samples',
       };
       taskService.createResponse = Response<Map<String, dynamic>>(
         data: <String, dynamic>{'task': initialTask},
@@ -186,7 +195,8 @@ void main() {
       final newDue =
           DateTime.now().add(const Duration(days: 3)).toUtc().toIso8601String();
       final updatedTask = Map<String, dynamic>.from(initialTask)
-        ..['dueDate'] = newDue;
+        ..['dueDate'] = newDue
+        ..['description'] = 'Collect updated samples';
       taskService.updateResponse = Response<Map<String, dynamic>>(
         data: <String, dynamic>{'task': updatedTask},
         requestOptions: RequestOptions(path: '/api/tasks/2'),
@@ -194,7 +204,8 @@ void main() {
 
       final task = await repository.updateTask('2', <String, dynamic>{});
 
-      expect(task.dueDate, newDue);
+      expect(task.dueDate?.toUtc(), DateTime.parse(newDue).toUtc());
+      expect(task.description, 'Collect updated samples');
       expect(notificationService.scheduled, hasLength(2));
       expect(
         notificationService.scheduled.last.id,
@@ -212,6 +223,7 @@ void main() {
         'dueDate': dueDate,
         'status': 'pending',
         'qr_code': 'qr-delete',
+        'description': 'Deliver medicine to patient',
       };
       taskService.createResponse = Response<Map<String, dynamic>>(
         data: <String, dynamic>{'task': taskJson},
@@ -236,6 +248,7 @@ void main() {
         'dueDate': dueDate,
         'status': 'pending',
         'qr_code': 'qr-complete',
+        'description': null,
       };
       taskService.createResponse = Response<Map<String, dynamic>>(
         data: <String, dynamic>{'task': taskJson},
@@ -255,6 +268,29 @@ void main() {
       final scheduledId = notificationService.scheduled.first.id;
       expect(notificationService.cancelled, contains(scheduledId));
       expect(repository.scheduledNotificationIds.containsKey('4'), isFalse);
+    });
+
+    test('createTask does not schedule notifications without due date', () async {
+      final taskJson = <String, dynamic>{
+        'id': '5',
+        'title': 'General follow-up',
+        'assignee': 'Nurse Sam',
+        'dueDate': null,
+        'status': 'pending',
+        'qr_code': 'qr-nodue',
+        'description': null,
+      };
+      taskService.createResponse = Response<Map<String, dynamic>>(
+        data: <String, dynamic>{'task': taskJson},
+        requestOptions: RequestOptions(path: '/api/tasks'),
+      );
+
+      final task = await repository.createTask(<String, dynamic>{});
+
+      expect(task.dueDate, isNull);
+      expect(task.description, isNull);
+      expect(notificationService.scheduled, isEmpty);
+      expect(repository.scheduledNotificationIds.containsKey(task.id), isFalse);
     });
   });
 }
