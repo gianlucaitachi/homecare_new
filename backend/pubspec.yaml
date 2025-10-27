@@ -1,0 +1,18 @@
+name: backend
+version: 1.0.0
+publish_to: "none"
+description: Simple Shelf backend for authentication
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  shelf: ^1.4.1
+  shelf_router: ^1.1.4
+  path: ^1.9.0
+  bcrypt: ^2.0.2
+  dart_jsonwebtoken: ^2.10.4
+  uuid: ^4.4.0
+
+dev_dependencies:
+  test: ^1.25.2
