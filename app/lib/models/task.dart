@@ -51,8 +51,9 @@ class Task {
     if (rawDueDate == null || (rawDueDate is String && rawDueDate.trim().isEmpty)) {
       dueDate = null;
     } else if (rawDueDate is String) {
-      dueDate = DateTime.tryParse(rawDueDate);
-      if (dueDate == null) {
+      try {
+        dueDate = DateTime.parse(rawDueDate);
+      } on FormatException {
         throw const FormatException('Task dueDate has an invalid format');
       }
     } else if (rawDueDate is DateTime) {
@@ -77,7 +78,7 @@ class Task {
       'id': id,
       'title': title,
       'assignee': assignee,
-      'dueDate': dueDate?.toUtc().toIso8601String(),
+      'dueDate': dueDate?.toIso8601String(),
       'status': status,
       'qr_code': qrCode,
       'description': description,
