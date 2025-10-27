@@ -199,7 +199,7 @@ class TaskRepository extends ChangeNotifier {
       id: notificationId,
       title: task.title,
       body: 'Assigned to ${task.assignee}',
-      scheduledDate: dueDate?.toLocal(),
+      scheduledDate: task.dueDate?.toLocal(),
       payload: task.id,
     );
 
@@ -222,11 +222,8 @@ class TaskRepository extends ChangeNotifier {
   }
 
   bool _isDueDateInFuture(DateTime? dueDate) {
-    if (dueDate == null) {
-      return false;
-    }
-    final now = DateTime.now().toUtc();
-    return dueDate.toUtc().isAfter(now);
+    if (dueDate == null) return false;
+    return dueDate.toUtc().isAfter(DateTime.now().toUtc());
   }
 
   int _notificationIdForTask(String taskId) {
