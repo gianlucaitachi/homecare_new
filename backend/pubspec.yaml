@@ -12,6 +12,8 @@ dependencies:
   path: ^1.9.0
   bcrypt: ^2.0.2
   dart_jsonwebtoken: ^2.10.4
+  dotenv: ^4.2.0
+  postgres: ^3.2.1
   uuid: ^4.4.0
   qr: ^3.0.1
   shelf_web_socket: ^1.0.4
