@@ -32,6 +32,17 @@ class ProfileView extends StatelessWidget {
         ),
       ),
     );
+
+    if (Scaffold.maybeOf(context) != null) {
+      return content;
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Profile'),
+      ),
+      body: content,
+    );
   }
 
   @override
