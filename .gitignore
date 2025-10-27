@@ -1,22 +1,123 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+# Miscellaneous
+*.class
+*.lock
+*.log
+*.pyc
+*.swp
 .DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
-.dart_tool/
-build/
-.gradle/
-.idea/
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
 *.iml
+*.ipr
+*.iws
+.idea/
+
+# Visual Studio Code related
+.vscode/
+
+# Flutter/Dart/Pub related
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+**/GeneratedPluginRegistrant.*
+
+# Flutter repo-specific
+/bin/cache/
+/bin/internal/bootstrap.bat
+/bin/internal/bootstrap.sh
+/bin/mingit/
+/dev/benchmarks/mega_gallery/
+.devtools/
+
+# Android related
+**/android/**/gradle-wrapper.jar
+**/android/.gradle/
+**/android/.idea/
+**/android/.cxx/
+**/android/.externalNativeBuild/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
 local.properties
+.gradle/
 app/build/
+
+# iOS related
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/.generated/
+**/ios/DerivedData/
+**/ios/build/
+**/ios/.symlinks/
+**/ios/Pods/
+
+# macOS related
+**/macos/Flutter/ephemeral/
+**/macos/Pods/
+**/macos/Flutter/App.framework
+**/macos/Flutter/Flutter.framework
+**/macos/Flutter/flutter_assets/
+**/macos/Flutter/flutter_export_environment.sh
+**/macos/Runner/GeneratedPluginRegistrant.*
+
+# Windows related
+**/windows/flutter/ephemeral/
+**/windows/Flutter/ephemeral/
+**/windows/Runner/GeneratedPluginRegistrant.*
+**/windows/.vs/
+
+# Linux related
+**/linux/flutter/ephemeral/
+**/linux/Flutter/ephemeral/
+**/linux/runner/GeneratedPluginRegistrant.*
+
+# Web related
+**/web/.sass-cache/
+**/web/.dart_tool/
+**/web/.packages
+**/web/build/
+
+# Coverage
+coverage/
+
+# Symbols
+app.*.symbols
+
+# Exceptions to above rules.
+!**/ios/**/default.mode1v3
+!**/ios/**/default.mode2v3
+!**/ios/**/default.pbxuser
+!**/ios/**/default.perspectivev3
+!**/ios/**/xcshareddata/
+!**/ios/**/workspace.xml
+!**/ios/**/contents.xcworkspacedata
+!**/ios/**/xcshareddata/WorkspaceSettings.xcsettings
+!**/ios/**/xcuserdata/
+!**/ios/**/Runner.xcodeproj/project.xcworkspace/
+!**/ios/**/Runner.xcworkspace/contents.xcworkspacedata
+!**/ios/**/Runner.xcodeproj/xcshareddata/
+!**/ios/**/Runner.xcworkspace/xcshareddata/
