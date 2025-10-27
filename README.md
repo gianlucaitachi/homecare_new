@@ -4,15 +4,45 @@
 Homecare New is an end-to-end platform that helps home health agencies coordinate caregivers, schedule visits, and share care plans with families. The goal is to provide a lightweight reference implementation that demonstrates how the backend API and the Flutter mobile client interact to deliver core workflows such as onboarding a patient, assigning a caregiver, and capturing visit notes in the field.
 
 ## Backend Service
-Although the backend source code is maintained in a separate repository, the project relies on a Node.js and NestJS service backed by PostgreSQL. The service exposes REST endpoints that power authentication, patient management, scheduling, and notification features consumed by the mobile client.
+The repository now includes a lightweight Dart backend alongside the mobile client. It is intended for local development and health checks while the full production-ready Node.js/NestJS backend continues to live in a separate repository. You can run either service depending on your development needs.
 
-### Prerequisites
+### Dart Shelf Backend
+The embedded backend is a minimal [Shelf](https://pub.dev/packages/shelf) server that exposes a health endpoint. It reads configuration from environment variables using [`dotenv`](https://pub.dev/packages/dotenv).
+
+#### Prerequisites
+- Dart SDK 3.0+
+
+#### Environment Variables
+Create a `.env` file at the project root (or in the directory where you invoke the server) with any variables you want to override. The only supported variable today is the port.
+
+```
+PORT=8080
+```
+
+If the `.env` file is omitted, the server defaults to port `8080`. You can also rely on the `PORT` variable from your shell environment.
+
+#### Running the Shelf Backend Locally
+1. Install dependencies with `dart pub get` (the command will resolve packages from `backend/pubspec.yaml`).
+2. Start the server:
+   ```bash
+   dart run backend/bin/server.dart
+   ```
+3. Verify the health endpoint responds:
+   ```bash
+   curl http://localhost:8080/health
+   # {"status":"ok"}
+   ```
+
+### Node.js/NestJS Backend
+The full-featured backend service remains in its own repository and is implemented with Node.js and NestJS backed by PostgreSQL. The service exposes REST endpoints that power authentication, patient management, scheduling, and notification features consumed by the mobile client.
+
+#### Prerequisites
 - Node.js 18+
 - npm (bundled with Node.js) or pnpm
 - PostgreSQL 14+ running locally or accessible via a connection string
 - Optional: Redis 6+ if you plan to enable session caching or rate limiting
 
-### Environment Variables
+#### Environment Variables
 Create a `.env` file in the backend project that defines the following values:
 
 ```
@@ -28,7 +58,7 @@ SMTP_FROM_ADDRESS=homecare@example.com
 
 Adjust the connection strings to match your environment. The `DATABASE_URL` must point to the PostgreSQL instance that stores patient, caregiver, and visit data.
 
-### Running the Backend Locally
+#### Running the Node Backend Locally
 1. Clone the backend repository alongside this project (for example, into `../homecare_backend`).
 2. Navigate to the backend directory: `cd ../homecare_backend`.
 3. Copy the sample environment file if provided: `cp .env.example .env` and update the variables listed above.
