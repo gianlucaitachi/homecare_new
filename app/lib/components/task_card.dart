@@ -29,6 +29,11 @@ class TaskCard extends StatelessWidget {
     return now.isAfter(dueDate);
   }
 
+  String get _dueDateLabel {
+    final dueDate = task.dueDate;
+    return formatDueDate(dueDate);
+  }
+
   Color _statusBackgroundColor(ColorScheme colors) {
     final value = task.status.toLowerCase();
     if (value.contains('complete')) {

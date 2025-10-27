@@ -2,7 +2,22 @@ import 'package:intl/intl.dart';
 
 String formatDueDate(DateTime? date) {
   if (date == null) {
-    return 'No due date';
+    return 'Không có hạn';
   }
-  return DateFormat('MMM d, yyyy').format(date);
+
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final dueDate = DateTime(date.year, date.month, date.day);
+
+  if (dueDate.isAtSameMomentAs(today)) {
+    return 'Hôm nay';
+  }
+
+  final formatted = DateFormat('dd/MM/yyyy').format(date);
+
+  if (dueDate.isBefore(today)) {
+    return 'Quá hạn: $formatted';
+  }
+
+  return formatted;
 }
