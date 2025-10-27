@@ -13,28 +13,125 @@ class TaskListView extends StatefulWidget {
 }
 
 class TaskListViewState extends State<TaskListView> {
-  late Future<List<Task>> _tasksFuture;
+  bool _initialFetchScheduled = false;
+  bool _isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
-    _tasksFuture = _loadTasks();
-  }
-
-  Future<List<Task>> _loadTasks({bool forceRefresh = false}) {
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialFetchScheduled) {
+      return;
+    }
+    _initialFetchScheduled = true;
     final repository = context.read<TaskRepository>();
-    return repository.fetchTasks(forceRefresh: forceRefresh);
+    if (repository.tasks.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        refreshTasks(forceRefresh: false);
+      });
+    }
   }
 
   Future<void> refreshTasks({bool forceRefresh = true}) async {
     setState(() {
-      _tasksFuture = _loadTasks(forceRefresh: forceRefresh);
+      _isLoading = true;
     });
-    await _tasksFuture;
+    try {
+      await context
+          .read<TaskRepository>()
+          .fetchTasks(forceRefresh: forceRefresh);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load tasks: $error'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleMarkDone(Task task) async {
+    final repository = context.read<TaskRepository>();
+    final normalizedStatus = task.status.toLowerCase();
+    if (normalizedStatus == 'completed' || normalizedStatus == 'complete') {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Task is already completed.')),
+      );
+      return;
+    }
+
+    try {
+      await repository.updateTask(task.id, <String, dynamic>{'status': 'completed'});
+      await repository.fetchTasks(forceRefresh: true);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Marked "${task.title}" as completed.'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to mark task as done: $error'),
+        ),
+      );
+    }
+  }
+
+  void _openTaskActions(Task task) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (BuildContext context) {
+        return TaskActionSheet(
+          task: task,
+          onMarkDone: task.status.toLowerCase() == 'completed'
+              ? null
+              : () async {
+                  Navigator.of(context).pop();
+                  await _handleMarkDone(task);
+                },
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return Center(
+      child: Text(
+        'No tasks available yet. Pull down to refresh.',
+        style: Theme.of(context).textTheme.bodyLarge,
+        textAlign: TextAlign.center,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final repository = context.watch<TaskRepository>();
+    final tasks = repository.tasks;
+
     return SafeArea(
       child: FutureBuilder<List<Task>>(
         future: _tasksFuture,
@@ -108,31 +205,90 @@ class TaskListViewState extends State<TaskListView> {
   }
 }
 
-class _RefreshableMessage extends StatelessWidget {
-  const _RefreshableMessage({
-    required this.onRefresh,
-    required this.message,
+class TaskCard extends StatelessWidget {
+  const TaskCard({
+    super.key,
+    required this.task,
+    this.onTap,
+    this.onMarkDone,
   });
 
-  final Future<void> Function({bool forceRefresh}) onRefresh;
-  final String message;
+  final Task task;
+  final VoidCallback? onTap;
+  final Future<void> Function()? onMarkDone;
+
+  bool get _isCompleted {
+    final normalized = task.status.toLowerCase();
+    return normalized == 'completed' || normalized == 'complete';
+  }
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(      
-      onRefresh: () => onRefresh(forceRefresh: true),
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-        children: [
-          Center(
-            child: Text(
-              message,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
+    final theme = Theme.of(context);
+    final dueDate = task.dueDate;
+    final dueDateLabel =
+        dueDate != null ? DateFormat('MMM d, yyyy').format(dueDate) : 'No due date';
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      task.title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  _StatusChip(status: task.status),
+                ],
+              ),
+              if (task.description != null && task.description!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  task.description!,
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ],
+              const SizedBox(height: 12),
+              Text('Assignee: ${task.assignee}'),
+              const SizedBox(height: 4),
+              Text('Due: $dueDateLabel'),
+              const SizedBox(height: 8),
+              SelectableText(
+                'QR Code: ${task.qrCode}',
+                style: theme.textTheme.bodySmall,
+              ),
+              if (!_isCompleted && onMarkDone != null) ...[
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      final callback = onMarkDone;
+                      if (callback == null) {
+                        return;
+                      }
+                      await callback();
+                    },
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('Mark as done'),
+                  ),
+                ),
+              ],
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
