@@ -54,33 +54,33 @@ Connect to the `/ws` endpoint with a WebSocket client to receive push notificati
 Use these events to keep connected clients synchronized with the current task list.
 
 ## Database & Persistence Workflow
-The `homecare_backend/` package contains shared database helpers, SQL migrations, and local development tooling for PostgreSQL.
+The `backend/` package contains shared database helpers, SQL migrations, and local development tooling for PostgreSQL.
 
 ### Initial Setup
 1. Copy the example environment file and adjust it as needed:
    ```bash
-   cp homecare_backend/.env.example homecare_backend/.env
+   cp backend/.env.example backend/.env
    ```
 2. Install dependencies for the Dart package:
    ```bash
-   dart pub get --directory homecare_backend
+   dart pub get --directory backend
    ```
 
 ### Running PostgreSQL Locally
 Use Docker Compose to provision PostgreSQL with persisted storage:
 
 ```bash
-cd homecare_backend
+cd backend
 docker-compose up -d
 ```
 
 This launches a Postgres 15 container with the credentials defined in `.env.example`.
 
 ### Applying Database Migrations
-After PostgreSQL is running, execute the migration tool to apply all SQL files in `homecare_backend/migrations/`:
+After PostgreSQL is running, execute the migration tool to apply all SQL files in `backend/migrations/`:
 
 ```bash
-cd homecare_backend
+cd backend
 dart run tool/migrate.dart
 ```
 

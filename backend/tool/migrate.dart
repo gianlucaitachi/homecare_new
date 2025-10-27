@@ -4,7 +4,7 @@ import 'package:dotenv/dotenv.dart' as dotenv;
 import 'package:path/path.dart' as p;
 import 'package:postgres/postgres.dart';
 
-import 'package:homecare_backend/db.dart';
+import 'package:backend/db.dart';
 
 Future<void> main(List<String> args) async {
   _loadEnv();
