@@ -13,6 +13,8 @@ dependencies:
   bcrypt: ^2.0.2
   dart_jsonwebtoken: ^2.10.4
   uuid: ^4.4.0
+  qr: ^3.0.1
+  shelf_web_socket: ^1.0.4
 
 dev_dependencies:
   test: ^1.25.2
