@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../models/task.dart';
+import '../utils/date_format.dart';
 
 class TaskCard extends StatelessWidget {
   const TaskCard({
@@ -33,10 +33,7 @@ class TaskCard extends StatelessWidget {
 
   String get _dueDateLabel {
     final dueDate = task.dueDate;
-    if (dueDate == null) {
-      return 'Không có hạn';
-    }
-    return DateFormat('dd/MM/yyyy').format(dueDate);
+    return formatDueDate(dueDate);
   }
 
   Color _statusBackgroundColor(ColorScheme colors) {
