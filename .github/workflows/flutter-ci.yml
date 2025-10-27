@@ -1,0 +1,55 @@
+name: Flutter CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: app
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Cache Flutter packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.pub-cache
+          key: flutter-pub-${{ runner.os }}-${{ hashFiles('app/app/pubspec.lock') }}
+          restore-keys: |
+            flutter-pub-${{ runner.os }}-
+
+      - name: Flutter pub get
+        run: flutter pub get
+        working-directory: app/app
+
+      - name: Flutter analyze
+        run: flutter analyze
+        working-directory: app/app
+
+      - name: Flutter test
+        run: flutter test
+        working-directory: app/app
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+        working-directory: app/app
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/app/build/app/outputs/flutter-apk/app-debug.apk
