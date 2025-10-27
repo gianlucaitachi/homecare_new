@@ -22,7 +22,7 @@ PORT=8080
 The `.env` file is optional—if it is missing or `PORT` is not set, the server falls back to port `8080`. You can still supply the same variables via the regular shell environment if you prefer.
 
 ### Running the Backend Locally
-1. Fetch the Dart dependencies: `dart pub get --directory backend`.
+1. Fetch the Dart dependencies: `dart pub get --directory backend`. The repository checks in `pubspec.lock`, which pins `bcrypt` to version `^1.1.3` because newer releases switch to an FFI-backed implementation that fails to compile in our Docker-based CI images.
 2. (Optional) Create or update `backend/.env` with the desired `PORT` value.
 3. Start the development server:
    ```
@@ -68,6 +68,9 @@ The `backend/` package contains shared database helpers, SQL migrations, and loc
    ```bash
    dart pub get --directory backend
    ```
+   The generated lockfile intentionally keeps `bcrypt` at `^1.1.3` to avoid the FFI toolchain issues encountered with `2.x` on the shared CI runners.
+
+> **Troubleshooting:** If `dart pub get` reports solver failures around `bcrypt`, confirm that the version constraint still matches `^1.1.3`; changing it triggers the same FFI build errors and will cause dependency resolution to abort.
 
 ### Running PostgreSQL Locally
 Use Docker Compose to provision PostgreSQL with persisted storage:
@@ -118,7 +121,7 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000 --dart-define=SENTRY
 ### Running the Flutter App Locally
 1. Ensure the backend server is running so the mobile client can authenticate.
 2. Navigate to the Flutter project: `cd app`.
-3. Fetch dependencies from the Flutter project directory: `flutter pub get`.
+3. Fetch dependencies: `flutter pub get`.
 4. Format and analyze (optional but recommended):
    - `flutter format lib`
    - `flutter analyze`
