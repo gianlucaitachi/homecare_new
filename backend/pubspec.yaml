@@ -1,13 +1,18 @@
 name: backend
-description: Simple Shelf backend for the Homecare project.
-version: 0.1.0
-publish_to: none
+version: 1.0.0
+publish_to: "none"
+description: Simple Shelf backend for authentication
+
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.0.0 <4.0.0"
+
 dependencies:
-  shelf:
-  shelf_router:
-  dotenv:
+  shelf: ^1.4.1
+  shelf_router: ^1.1.4
+  path: ^1.9.0
+  bcrypt: ^2.0.2
+  dart_jsonwebtoken: ^2.10.4
+  uuid: ^4.4.0
+
 dev_dependencies:
-  lints:
-  test:
+  test: ^1.25.2
