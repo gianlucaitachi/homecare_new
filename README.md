@@ -90,7 +90,7 @@ dart run tool/migrate.dart
 The script loads `DATABASE_URL` from the environment, applies any pending migrations in order, and records them in the `schema_migrations` table. Rerunning the command is safe—it skips migrations that are already applied.
 
 ## Flutter Mobile App
-The mobile client is a Flutter application that caregivers use in the field to view schedules, receive push notifications, record visit outcomes, and synchronize data with the backend service when connectivity is available. The Flutter code now lives in the `homecare_app/` project directory.
+The mobile client is a Flutter application that caregivers use in the field to view schedules, receive push notifications, record visit outcomes, and synchronize data with the backend service when connectivity is available. The Flutter code now lives in the `app/` project directory.
 
 ### Prerequisites
 - Flutter SDK 3.19+
@@ -100,7 +100,7 @@ The mobile client is a Flutter application that caregivers use in the field to v
 - An Android emulator or iOS simulator/device
 
 ### Configuration
-Create a `.env` (or use Dart define flags) in the Flutter project to point to your backend API. The most common configuration is the base API URL used for HTTP requests.
+Create an `app/.env` file (or use Dart define flags) in the Flutter project to point to your backend API. The most common configuration is the base API URL used for HTTP requests.
 
 ```
 API_BASE_URL=http://localhost:3000
@@ -111,17 +111,18 @@ GOOGLE_MAPS_API_KEY=
 You can either load these values with a package such as `flutter_dotenv` or pass them at runtime:
 
 ```
+cd app
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000 --dart-define=SENTRY_DSN= --dart-define=GOOGLE_MAPS_API_KEY=
 ```
 
 ### Running the Flutter App Locally
 1. Ensure the backend server is running so the mobile client can authenticate.
-2. Navigate to the Flutter project: `cd homecare_app`.
-3. Fetch dependencies: `flutter pub get`.
+2. Navigate to the Flutter project: `cd app`.
+3. Fetch dependencies from the Flutter project directory: `flutter pub get`.
 4. Format and analyze (optional but recommended):
    - `flutter format lib`
    - `flutter analyze`
-5. Launch the application, providing the backend base URL that should be injected into the runtime configuration:
+5. Launch the application from the `app/` directory, providing the backend base URL that should be injected into the runtime configuration:
    ```
    flutter run \
      --dart-define=BACKEND_BASE_URL=http://10.0.2.2:8080 \
@@ -129,7 +130,7 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000 --dart-define=SENTRY
    ```
 
 ### Local notifications
-- Copy the same configuration used for regular builds before testing reminders. Either create/update `homecare_app/.env` with the required keys (for example `API_BASE_URL`, `SENTRY_DSN`, and `GOOGLE_MAPS_API_KEY`) or provide them with `--dart-define` flags when you run `flutter run` or `flutter test`.
+- Copy the same configuration used for regular builds before testing reminders. Either create/update `app/.env` with the required keys (for example `API_BASE_URL`, `SENTRY_DSN`, and `GOOGLE_MAPS_API_KEY`) or provide them with `--dart-define` flags when you run `flutter run` or `flutter test`.
 - Grant notification permissions on your test device:
   - **Android 13+ (API 33+)**: After the app prompts for notifications, verify the permission in **Settings → Apps → Homecare → Notifications**. Toggle **Allow notifications** on if it was denied.
   - **iOS**: Accept the in-app prompt or enable it later under **Settings → Homecare → Notifications → Allow Notifications**.
@@ -145,16 +146,18 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000 --dart-define=SENTRY
 ### Build Artifacts
 - **Android:**
   ```
+  cd app
   flutter build apk --dart-define=BACKEND_BASE_URL=https://api.example.com
   ```
 - **iOS (on macOS):**
   ```
+  cd app
   flutter build ios --dart-define=BACKEND_BASE_URL=https://api.example.com
   ```
 
 The `BACKEND_BASE_URL` value is consumed by `env.dart` through `String.fromEnvironment`, ensuring the router and services point to the correct API endpoint in every build.
-6. Run integration tests if available: `flutter test`.
-7. Launch the app on an emulator or device, again supplying the backend URL: `flutter run --dart-define=BACKEND_BASE_URL=http://10.0.2.2:8080`.
+6. Run integration tests if available from within `app/`: `flutter test`.
+7. Launch the app on an emulator or device from within `app/`, again supplying the backend URL: `flutter run --dart-define=BACKEND_BASE_URL=http://10.0.2.2:8080`.
 8. For iOS, open `ios/Runner.xcworkspace` in Xcode and run on a simulator or device after running `flutter pub get`.
 
 ## Coordinating Backend and Mobile Development
