@@ -13,14 +13,25 @@ class BottomBarComponent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final labelStyle = theme.textTheme.labelMedium;
 
     return BottomNavigationBar(
       currentIndex: currentIndex,
       onTap: onTap,
       type: BottomNavigationBarType.fixed,
       showUnselectedLabels: true,
-      selectedItemColor: theme.colorScheme.primary,
-      unselectedItemColor: theme.colorScheme.onSurfaceVariant,
+      selectedItemColor: colorScheme.primary,
+      unselectedItemColor: colorScheme.onSurfaceVariant,
+      selectedIconTheme: IconThemeData(color: colorScheme.primary),
+      unselectedIconTheme: IconThemeData(color: colorScheme.onSurfaceVariant),
+      selectedLabelStyle: labelStyle?.copyWith(
+        color: colorScheme.primary,
+        fontWeight: FontWeight.w600,
+      ),
+      unselectedLabelStyle: labelStyle?.copyWith(
+        color: colorScheme.onSurfaceVariant,
+      ),
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.list_alt_outlined),
