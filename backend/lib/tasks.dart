@@ -54,18 +54,18 @@ String generateTaskQrCode() {
     errorCorrectLevel: QrErrorCorrectLevel.M,
   );
 
+  final qrImage = QrImage(qrCode);
   final matrix = <List<int>>[];
-  for (var y = 0; y < qrCode.moduleCount; y++) {
+  for (var y = 0; y < qrImage.moduleCount; y++) {
     final row = <int>[];
-    for (var x = 0; x < qrCode.moduleCount; x++) {
-      row.add(qrCode.isDark(y, x) ? 1 : 0);
+    for (var x = 0; x < qrImage.moduleCount; x++) {
+      row.add(qrImage.isDark(y, x) ? 1 : 0);
     }
     matrix.add(row);
   }
 
   return jsonEncode({'data': qrData, 'matrix': matrix});
 }
-
 
 bool isQrCodeValid(String stored, String provided) {
   return stored.isNotEmpty && stored == provided;
