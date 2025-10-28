@@ -27,21 +27,10 @@ class ProfileView extends StatelessWidget {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Text('Profile data sourced from: ' + baseUrl),
+            Text('Profile data sourced from: $baseUrl'),
           ],
         ),
       ),
-    );
-
-    if (Scaffold.maybeOf(context) != null) {
-      return content;
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-      ),
-      body: content,
     );
   }
 

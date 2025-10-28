@@ -41,7 +41,28 @@ class _ScanViewState extends State<ScanView> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    unawaited(_controller.start());
+    unawaited(_initializeScanner());
+  }
+
+  Future<void> _initializeScanner() async {
+    try {
+      await _controller.start();
+      if (mounted) {
+        setState(() {
+          _hasPermission = true;
+          _permissionDenied = false;
+        });
+      }
+    } on MobileScannerException catch (e) {
+      if (e.errorCode == MobileScannerErrorCode.permissionDenied) {
+        if (mounted) {
+          setState(() {
+            _permissionDenied = true;
+            _hasPermission = false;
+          });
+        }
+      }
+    }
   }
 
   @override
@@ -58,25 +79,6 @@ class _ScanViewState extends State<ScanView> with WidgetsBindingObserver {
       unawaited(_controller.stop());
     } else if (state == AppLifecycleState.resumed && !_isProcessing && _hasPermission) {
       unawaited(_controller.start());
-    }
-  }
-
-  void _onPermissionSet(MobileScannerController controller, bool granted) {
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _hasPermission = granted;
-      _permissionDenied = !granted;
-    });
-
-    if (!granted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Camera permission is required to scan QR codes.'),
-        ),
-      );
     }
   }
 
@@ -216,7 +218,7 @@ class _ScanViewState extends State<ScanView> with WidgetsBindingObserver {
         return message.trim();
       }
     } else if (data is Map) {
-      final map = Map<String, dynamic>.from(data as Map);
+      final map = Map<String, dynamic>.from(data);
       final message = map['message'] ?? map['error'];
       if (message is String && message.trim().isNotEmpty) {
         return message.trim();
@@ -254,7 +256,7 @@ class _ScanViewState extends State<ScanView> with WidgetsBindingObserver {
                   setState(() {
                     _permissionDenied = false;
                   });
-                  unawaited(_controller.start());
+                  unawaited(_initializeScanner());
                 },
                 child: const Text('Try Again'),
               ),
@@ -269,7 +271,6 @@ class _ScanViewState extends State<ScanView> with WidgetsBindingObserver {
       children: [
         MobileScanner(
           controller: _controller,
-          onPermissionSet: _onPermissionSet,
           onDetect: _onDetect,
         ),
         Align(

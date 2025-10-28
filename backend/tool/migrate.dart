@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:dotenv/dotenv.dart' as dotenv;
+import 'package:dotenv/dotenv.dart';
 import 'package:path/path.dart' as p;
 import 'package:postgres/postgres.dart';
 
@@ -16,7 +16,7 @@ Future<void> main(List<String> args) async {
     return;
   }
 
-  final PostgreSQLConnection connection = await pg();
+  final Connection connection = await pg();
   await _ensureMigrationsTable(connection);
 
   final Set<String> appliedMigrations = await _fetchAppliedMigrations(connection);
@@ -36,11 +36,11 @@ Future<void> main(List<String> args) async {
     }
 
     stdout.writeln('Applying migration: $name');
-    await connection.transaction((ctx) async {
-      await ctx.execute(sql);
-      await ctx.query(
-        'INSERT INTO schema_migrations (filename) VALUES (@filename)',
-        substitutionValues: {'filename': name},
+    await connection.runTx((ctx) async {
+      await ctx.execute(Sql.named(sql));
+      await ctx.execute(
+        Sql.named('INSERT INTO schema_migrations (filename) VALUES (@filename)'),
+        parameters: {'filename': name},
       );
     });
     stdout.writeln('Applied migration: $name');
@@ -53,15 +53,13 @@ Future<void> main(List<String> args) async {
 
 void _loadEnv() {
   try {
-    if (!dotenv.isInitialized) {
-      dotenv.load();
-    }
+    DotEnv()..load();
   } on FileSystemException {
     // Ignore missing .env file; fall back to process environment variables.
   }
 }
 
-Future<void> _ensureMigrationsTable(PostgreSQLConnection connection) async {
+Future<void> _ensureMigrationsTable(Connection connection) async {
   await connection.execute('''
     CREATE TABLE IF NOT EXISTS schema_migrations (
       id SERIAL PRIMARY KEY,
@@ -71,8 +69,8 @@ Future<void> _ensureMigrationsTable(PostgreSQLConnection connection) async {
   ''');
 }
 
-Future<Set<String>> _fetchAppliedMigrations(PostgreSQLConnection connection) async {
-  final results = await connection.query('SELECT filename FROM schema_migrations ORDER BY filename');
+Future<Set<String>> _fetchAppliedMigrations(Connection connection) async {
+  final results = await connection.execute(Sql.named('SELECT filename FROM schema_migrations ORDER BY filename'));
   return results.map((row) => row.first as String).toSet();
 }
 

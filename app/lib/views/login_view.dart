@@ -76,7 +76,7 @@ class _LoginViewState extends State<LoginView> {
         return message.trim();
       }
     } else if (data is Map) {
-      final map = Map<String, dynamic>.from(data as Map);
+      final map = Map<String, dynamic>.from(data);
       final message = map['message'] ?? map['error'];
       if (message is String && message.trim().isNotEmpty) {
         return message.trim();

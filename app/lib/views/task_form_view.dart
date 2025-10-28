@@ -213,7 +213,7 @@ class _TaskFormViewState extends State<TaskFormView> {
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   key: _statusFieldKey,
-                  value: _status,
+                  initialValue: _status,
                   decoration: const InputDecoration(labelText: 'Status'),
                   items: _statusOptions
                       .map(

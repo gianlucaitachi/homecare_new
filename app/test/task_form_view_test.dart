@@ -51,7 +51,7 @@ void main() {
       id: '123',
       title: 'Created Task',
       assignee: 'Assignee',
-      dueDate: '2025-01-01',
+      dueDate: DateTime.parse('2025-01-01'),
       status: 'in_progress',
       qrCode: 'qr',
     );

@@ -59,7 +59,7 @@ class NotificationService {
       return;
     }
 
-    final notificationDetails = NotificationDetails(
+    const notificationDetails = NotificationDetails(
       android: AndroidNotificationDetails(
         'homecare_default_channel',
         'Homecare Notifications',
@@ -67,7 +67,7 @@ class NotificationService {
         importance: Importance.max,
         priority: Priority.high,
       ),
-      iOS: const DarwinNotificationDetails(),
+      iOS: DarwinNotificationDetails(),
     );
 
     final now = DateTime.now();
@@ -83,7 +83,7 @@ class NotificationService {
       tzDate,
       notificationDetails,
       payload: payload,
-      androidAllowWhileIdle: true,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
     );
@@ -128,7 +128,7 @@ class NotificationService {
       final androidImplementation = _flutterLocalNotificationsPlugin
           .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>();
-      final androidGranted = await androidImplementation?.requestPermission();
+      final androidGranted = await androidImplementation?.requestNotificationsPermission();
       permissionGranted = androidGranted ?? true;
     }
 

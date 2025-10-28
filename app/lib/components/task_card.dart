@@ -42,7 +42,7 @@ class TaskCard extends StatelessWidget {
     if (value.contains('pending') || value.contains('todo')) {
       return colors.primaryContainer;
     }
-    return colors.surfaceVariant;
+    return colors.surfaceContainerHighest;
   }
 
   Color _statusForegroundColor(ColorScheme colors) {
@@ -68,7 +68,7 @@ class TaskCard extends StatelessWidget {
     final cardColor = _isOverdue
         ? colors.errorContainer
         : _isCompleted
-            ? colors.surfaceVariant
+            ? colors.surfaceContainerHighest
             : baseCardColor;
     final textColor = _isOverdue
         ? colors.onErrorContainer
@@ -79,7 +79,7 @@ class TaskCard extends StatelessWidget {
         ? BorderSide(color: colors.error)
         : _isCompleted
             ? BorderSide(color: colors.outlineVariant)
-            : BorderSide(color: colors.outlineVariant.withOpacity(0.4));
+            : BorderSide(color: colors.outlineVariant.withAlpha(102));
     final dueDateLabel = formatDueDate(task.dueDate);
     final canMarkDone = !_isCompleted && onMarkDone != null;
 
@@ -108,7 +108,7 @@ class TaskCard extends StatelessWidget {
                     Text(
                       'Người phụ trách: ${task.assignee}',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: textColor?.withOpacity(0.9) ??
+                        color: textColor?.withAlpha(230) ??
                             theme.textTheme.bodyMedium?.color,
                       ),
                     ),
@@ -119,8 +119,8 @@ class TaskCard extends StatelessWidget {
                 _QrBadge(
                   foregroundColor: textColor ?? colors.primary,
                   backgroundColor: textColor != null
-                      ? textColor.withOpacity(0.12)
-                      : colors.primaryContainer.withOpacity(0.5),
+                      ? textColor.withAlpha(31)
+                      : colors.primaryContainer.withAlpha(128),
                 ),
               if (canMarkDone)
                 IconButton(

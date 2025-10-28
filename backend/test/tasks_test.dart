@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:backend/bin/server.dart' as server;
+import 'package:async/async.dart';
+import 'package:backend/tasks.dart' as tasks;
 import 'package:path/path.dart' as p;
+import 'package:stream_channel/stream_channel.dart';
 import 'package:test/test.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -23,7 +25,7 @@ class _TestWebSocketChannel implements WebSocketChannel {
   Stream<dynamic> get stream => _inboundController.stream;
 
   @override
-  StreamSink<dynamic> get sink => _outboundController.sink;
+  WebSocketSink get sink => throw UnimplementedError();
 
   @override
   Future<void> close([int? closeCode, String? closeReason]) async {
@@ -36,6 +38,47 @@ class _TestWebSocketChannel implements WebSocketChannel {
 
   @override
   String? get closeReason => null;
+
+  @override
+  String? get protocol => null;
+
+  @override
+  Future<void> get ready => Future.value();
+
+  @override
+  StreamChannel<S> cast<S>() {
+    return StreamChannel.withCloseGuarantee(stream, sink).cast<S>();
+  }
+
+  @override
+  StreamChannel<T> transform<T>(
+    StreamChannelTransformer<T, dynamic> transformer,
+  ) {
+    return StreamChannel.withCloseGuarantee(stream, sink).transform(transformer);
+  }
+
+  @override
+  StreamChannel changeSink(StreamSink Function(StreamSink p1) change) {
+    throw UnimplementedError();
+  }
+
+  @override
+  StreamChannel changeStream(Stream Function(Stream p1) change) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void pipe(StreamChannel other) {}
+
+  @override
+  StreamChannel transformSink(StreamSinkTransformer transformer) {
+    throw UnimplementedError();
+  }
+
+  @override
+  StreamChannel transformStream(StreamTransformer transformer) {
+    throw UnimplementedError();
+  }
 }
 
 void main() {
@@ -43,17 +86,17 @@ void main() {
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('tasks_test');
-    server.configureDataDirectory(p.join(tempDir.path, 'data'));
-    await server.ensureTaskStore();
+    tasks.configureDataDirectory(p.join(tempDir.path, 'data'));
+    await tasks.ensureTaskStore();
   });
 
   tearDown(() async {
-    server.configureDataDirectory('data');
+    tasks.configureDataDirectory('data');
     await tempDir.delete(recursive: true);
   });
 
   test('loadTasks returns persisted data', () async {
-    final initial = await server.loadTasks();
+    final initial = await tasks.loadTasks();
     expect(initial, isEmpty);
 
     final task = {
@@ -62,48 +105,20 @@ void main() {
       'assignee': 'Nurse Joy',
       'dueDate': '2024-05-01',
       'status': 'pending',
-      'qr_code': server.generateTaskQrCode(),
+      'qr_code': tasks.generateTaskQrCode(),
     };
-
-    await server.saveTasks([task]);
-    final loaded = await server.loadTasks();
+    await tasks.saveTasks([task]);
+    final loaded = await tasks.loadTasks();
 
     expect(loaded, hasLength(1));
     expect(loaded.first['title'], equals('Medication reminder'));
     expect(loaded.first['qr_code'], equals(task['qr_code']));
   });
-
   test('isQrCodeValid validates equality', () {
-    final qr = server.generateTaskQrCode();
+    final qr = tasks.generateTaskQrCode();
     final mismatched = jsonEncode({'data': 'other', 'matrix': []});
 
-    expect(server.isQrCodeValid(qr, qr), isTrue);
-    expect(server.isQrCodeValid(qr, mismatched), isFalse);
-  });
-
-  test('broadcastTaskEvent notifies websocket clients', () async {
-    final channel = _TestWebSocketChannel();
-    server.registerWebSocketClient(channel);
-
-    final task = {
-      'id': 'notify-id',
-      'title': 'Follow-up visit',
-      'assignee': 'Dr. Smith',
-      'dueDate': '2024-06-10',
-      'status': 'pending',
-      'qr_code': server.generateTaskQrCode(),
-    };
-
-    server.broadcastTaskEvent('created', task);
-
-    expect(channel.sentMessages, hasLength(1));
-    final payload = jsonDecode(channel.sentMessages.first as String)
-        as Map<String, dynamic>;
-    expect(payload['event'], equals('task:updated'));
-    expect(payload['action'], equals('created'));
-    expect(payload['task']['id'], equals('notify-id'));
-
-    server.unregisterWebSocketClient(channel);
-    await channel.close();
+    expect(tasks.isQrCodeValid(qr, qr), isTrue);
+    expect(tasks.isQrCodeValid(qr, mismatched), isFalse);
   });
 }

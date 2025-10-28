@@ -24,13 +24,13 @@ class QrService {
       if (value is Map<String, dynamic>) {
         decoded = value;
       } else if (value is Map) {
-        decoded = Map<String, dynamic>.from(value as Map);
+        decoded = Map<String, dynamic>.from(value);
       } else {
         throw const FormatException('QR payload must decode to an object.');
       }
     } on FormatException catch (error) {
       if (error.message == 'QR payload must decode to an object.') {
-        throw error;
+        rethrow;
       }
       throw const FormatException('QR payload is not valid JSON.');
     } catch (_) {
@@ -42,7 +42,7 @@ class QrService {
     if (taskNode is Map<String, dynamic>) {
       candidates.insert(0, taskNode);
     } else if (taskNode is Map) {
-      candidates.insert(0, Map<String, dynamic>.from(taskNode as Map));
+      candidates.insert(0, Map<String, dynamic>.from(taskNode));
     }
 
     String? taskId;

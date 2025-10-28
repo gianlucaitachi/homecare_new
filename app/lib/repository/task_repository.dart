@@ -87,9 +87,9 @@ class TaskRepository extends ChangeNotifier {
       _cachedTasks = taskList.tasks;
       await _persistCache();
       notifyListeners();
-    } on DioException catch (error) {
+    } on DioException {
       if (_cachedTasks.isEmpty) {
-        throw error;
+        rethrow;
       }
     }
 

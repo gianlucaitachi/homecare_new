@@ -25,7 +25,7 @@ class AuthRepository {
       response = await _authService.post<dynamic>(path, data: payload);
     } on DioException catch (error) {
       if (error.response != null) {
-        throw error;
+        rethrow;
       }
       rethrow;
     }
@@ -35,7 +35,7 @@ class AuthRepository {
       throw const FormatException('Invalid authentication response payload');
     }
 
-    final json = Map<String, dynamic>.from(body as Map);
+    final json = Map<String, dynamic>.from(body);
     final authResponse = AuthResponse.fromJson(json);
     await _tokenStorage.saveToken(authResponse.token);
     return authResponse;

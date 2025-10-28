@@ -38,7 +38,7 @@ void main() {
       const secret = 'test-secret';
       final token = generateToken({'sub': '123'}, secret);
 
-      expect(() => verifyToken(token, 'other-secret'), throwsA(isA<JWTError>()));
+      expect(() => verifyToken(token, 'other-secret'), throwsA(isA<JwtException>()));
     });
   });
 }

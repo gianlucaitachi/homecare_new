@@ -1,17 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:path/path.dart' as p;
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
 import 'package:shelf_web_socket/shelf_web_socket.dart';
+import 'package:shelf_web_socket/src/web_socket_handler.dart';
 import 'package:uuid/uuid.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:qr/qr.dart';
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 
 import 'package:backend/auth.dart';
+import 'package:backend/tasks.dart';
 
 final _uuid = Uuid();
 String _dataDirectory = 'data';
@@ -259,7 +260,7 @@ Future<void> main(List<String> args) async {
         onDone: () => unregisterWebSocketClient(channel),
         onError: (_) => unregisterWebSocketClient(channel),
       );
-    }));
+    } as ConnectionCallback));
 
   final handler = const Pipeline()
       .addMiddleware(logRequests())
@@ -269,10 +270,6 @@ Future<void> main(List<String> args) async {
   final port = int.tryParse(Platform.environment['PORT'] ?? '') ?? 8080;
   final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
   stdout.writeln('Server listening on port ${server.port}');
-}
-
-void configureDataDirectory(String directory) {
-  _dataDirectory = directory;
 }
 
 Middleware _authGuard(String jwtSecret) {
@@ -296,7 +293,7 @@ Middleware _authGuard(String jwtSecret) {
             'user': payload,
           });
           return await innerHandler(updatedRequest);
-        } on JWTError {
+        } on JwtException {
           return _jsonResponse(401, {'error': 'Invalid or expired token.'});
         } catch (_) {
           return _jsonResponse(500, {'error': 'Failed to validate token.'});
@@ -361,7 +358,7 @@ Future<List<Map<String, dynamic>>> _readUsers() async {
   if (data is List) {
     return data
         .whereType<Map>()
-        .map((e) => Map<String, dynamic>.from(e as Map))
+        .map((e) => Map<String, dynamic>.from(e))
         .toList();
   }
   throw const FormatException('Users store is corrupt.');
@@ -378,64 +375,6 @@ Future<void> _ensureDataDirectory() async {
   if (!await dataDir.exists()) {
     await dataDir.create(recursive: true);
   }
-}
-
-Future<void> ensureTaskStore() async {
-  await _ensureDataDirectory();
-  final file = File(p.join(_dataDirectory, 'tasks.json'));
-  if (!await file.exists()) {
-    await file.writeAsString(jsonEncode(<Map<String, dynamic>>[]));
-  }
-}
-
-Future<List<Map<String, dynamic>>> loadTasks() async {
-  final file = File(p.join(_dataDirectory, 'tasks.json'));
-  if (!await file.exists()) {
-    return <Map<String, dynamic>>[];
-  }
-
-  final contents = await file.readAsString();
-  if (contents.trim().isEmpty) {
-    return <Map<String, dynamic>>[];
-  }
-
-  final data = jsonDecode(contents);
-  if (data is List) {
-    return data
-        .whereType<Map>()
-        .map((e) => Map<String, dynamic>.from(e as Map))
-        .toList();
-  }
-  throw const FormatException('Tasks store is corrupt.');
-}
-
-Future<void> saveTasks(List<Map<String, dynamic>> tasks) async {
-  final file = File(p.join(_dataDirectory, 'tasks.json'));
-  final jsonString = const JsonEncoder.withIndent('  ').convert(tasks);
-  await file.writeAsString(jsonString);
-}
-
-String generateTaskQrCode() {
-  final qrData = _uuid.v4();
-  final qrCode = QrCode.fromData(
-    data: qrData,
-    errorCorrectLevel: QrErrorCorrectLevel.medium,
-  );
-
-  final matrix = <List<int>>[];
-  for (var y = 0; y < qrCode.moduleCount; y++) {
-    final row = <int>[];
-    for (var x = 0; x < qrCode.moduleCount; x++) {
-      row.add(qrCode.isDark(y, x) ? 1 : 0);
-    }
-    matrix.add(row);
-  }
-
-  return jsonEncode({'data': qrData, 'matrix': matrix});
-}
-
-bool isQrCodeValid(String stored, String provided) {
-  return stored.isNotEmpty && stored == provided;
 }
 
 void registerWebSocketClient(WebSocketChannel channel) {

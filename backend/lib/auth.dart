@@ -19,10 +19,20 @@ String generateToken(
 }
 
 Map<String, dynamic> verifyToken(String token, String secret) {
-  final jwt = JWT.verify(token, SecretKey(secret));
-  final payload = jwt.payload;
-  if (payload is Map<String, dynamic>) {
-    return Map<String, dynamic>.from(payload);
+  try {
+    final jwt = JWT.verify(token, SecretKey(secret));
+    final payload = jwt.payload;
+    if (payload is Map<String, dynamic>) {
+      return Map<String, dynamic>.from(payload);
+    }
+    throw JwtException.invalidToken;
+  } on JwtException {
+    rethrow;
+  } catch (_) {
+    throw JwtException.invalidToken;
   }
-  throw JWTError('Invalid payload in token');
+}
+
+class JwtException {
+  static var invalidToken;
 }

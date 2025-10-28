@@ -70,7 +70,7 @@ class TaskStorage {
       });
     }
     if (decoded is Map) {
-      final map = Map<String, dynamic>.from(decoded as Map);
+      final map = Map<String, dynamic>.from(decoded);
       return map.map((key, value) {
         final parsed = int.tryParse(value.toString());
         if (parsed == null) {

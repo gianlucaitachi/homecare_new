@@ -21,11 +21,11 @@ class AppRouter {
       case homeRoute:
         return MaterialPageRoute(builder: (_) => const HomePage());
       case taskFormRoute:
-        return MaterialPageRoute(builder: (_) => TaskFormView(baseUrl: Env.backendBaseUrl));
+        return MaterialPageRoute(builder: (_) => const TaskFormView(baseUrl: Env.backendBaseUrl));
       case scanRoute:
-        return MaterialPageRoute(builder: (_) => ScanView(baseUrl: Env.backendBaseUrl));
+        return MaterialPageRoute(builder: (_) => const ScanView(baseUrl: Env.backendBaseUrl));
       case profileRoute:
-        return MaterialPageRoute(builder: (_) => ProfileView(baseUrl: Env.backendBaseUrl));
+        return MaterialPageRoute(builder: (_) => const ProfileView(baseUrl: Env.backendBaseUrl));
       default:
         return MaterialPageRoute(builder: (_) => const LoginView());
     }

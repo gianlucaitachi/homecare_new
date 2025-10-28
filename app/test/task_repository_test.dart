@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:homecare_app/models/task.dart';
 import 'package:homecare_app/repository/task_repository.dart';
 import 'package:homecare_app/services/notification_service.dart';
 import 'package:homecare_app/services/task_service.dart';

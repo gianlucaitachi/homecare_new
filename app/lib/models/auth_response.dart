@@ -13,7 +13,7 @@ class AuthResponse {
     }
     Map<String, dynamic>? user;
     if (json['user'] is Map) {
-      user = Map<String, dynamic>.from(json['user'] as Map);
+      user = Map<String, dynamic>.from(json['user']);
     }
     final additionalData = <String, dynamic>{};
     json.forEach((key, value) {
@@ -26,7 +26,7 @@ class AuthResponse {
       additionalData[key] = value;
     });
     return AuthResponse(
-      token: rawToken as String,
+      token: rawToken,
       refreshToken: json['refreshToken'] as String?,
       user: user,
       additionalData: additionalData,

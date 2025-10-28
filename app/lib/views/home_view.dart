@@ -88,7 +88,7 @@ class _HomePageState extends State<HomePage> {
             onTaskCompleted: _handleScanCompleted,
             showAppBar: false,
           ),
-          ProfileView(
+          const ProfileView(
             baseUrl: Env.backendBaseUrl,
             showScaffold: false,
           ),
